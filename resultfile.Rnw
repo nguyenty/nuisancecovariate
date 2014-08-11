@@ -1,0 +1,1455 @@
+\documentclass[11pt]{article}
+\usepackage[a4paper,landscape, margin = .2in]{geometry}
+%\usepackage[margin=1in]{geometry}   % set up margins
+\usepackage{enumerate}              % fancy enumerate
+\usepackage{amsmath}                % used for \eqref{} in this document
+\usepackage{verbatim}               % useful for \begin{comment} and \end{comment}
+\usepackage{comment}
+%\usepackage[pdftitle={Homework With knitr}, colorlinks=true, linkcolor=blue,
+%citecolor=blue, urlcolor=blue, linktocpage=true, breaklinks=true]{hyperref}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+%%%%%%%%%%%%%%%%   Sweave Options  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\SweaveOpts{fig.path='./Graphs/alan-', comment=NA, prompt=FALSE}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\title{RFI data-Simulation Based Model Selection }
+\author{Dan Nettleton, Yet Nguyen}
+%\date{Spring 2012}
+\maketitle
+
+<<setup, echo = FALSE, results= 'hide', message = FALSE>>=
+library("xtable")
+library("plyr")
+#install.packages("PASWR")
+library("PASWR")
+options(width = 98)
+@
+\section{$p.beta = 1$}
+The simulation of count data is without offset.
+
+$j: i.beta(0.1,0.5)$ , $k: S(1.25, 2)$, $l: L(.25, .5),U(.75, 1)$.
+
+<<loaddata,echo=FALSE>>=
+setwd("P:/FDR dependence/Model Selection/logoffset_in_simulation_logoffset_in_model_negative_beta_positive_beta_50_50/result/pbeta_1")
+i <- 5
+
+
+ind <- expand.grid(j = c(1,2), k = c(1,2), l = c(1,2))
+
+
+#load(file = paste(getwd(), "/sim1.RData", sep = ""))
+load(file = paste(getwd(), "/res.auc.nocov.RData", sep = ""))
+load(file = paste(getwd(), "/res.auc.cov.RData", sep = ""))
+load(file = paste(getwd(), "/res.auc.ebp.RData", sep = ""))
+load(file = paste(getwd(), "/res.auc.g.ebp.RData", sep = ""))
+load(file = paste(getwd(), "/res.auc.aic.RData", sep = ""))
+load(file = paste(getwd(), "/res.auc.true.RData", sep = ""))
+load(file = paste(getwd(), "/res.auc.aebp.RData", sep = ""))
+load(file = paste(getwd(), "/res.auc.g.aebp.RData", sep = ""))
+
+load(file = paste(getwd(), "/res.fdp.nocov.RData", sep = ""))
+load(file = paste(getwd(), "/res.fdp.cov.RData", sep = ""))
+load(file = paste(getwd(), "/res.fdp.ebp.RData", sep = ""))
+load(file = paste(getwd(), "/res.fdp.g.ebp.RData", sep = ""))
+load(file = paste(getwd(), "/res.fdp.aic.RData", sep = ""))
+load(file = paste(getwd(), "/res.fdp.true.RData", sep = ""))
+
+load(file = paste(getwd(), "/sd.res.auc.nocov.RData", sep = ""))
+load(file = paste(getwd(), "/sd.res.auc.cov.RData", sep = ""))
+load(file = paste(getwd(), "/sd.res.auc.ebp.RData", sep = ""))
+load(file = paste(getwd(), "/sd.res.auc.g.ebp.RData", sep = ""))
+load(file = paste(getwd(), "/sd.res.auc.aic.RData", sep = ""))
+load(file = paste(getwd(), "/sd.res.auc.true.RData", sep = ""))
+load(file = paste(getwd(), "/sd.res.auc.aebp.RData", sep = ""))
+load(file = paste(getwd(), "/sd.res.auc.g.aebp.RData", sep = ""))
+
+
+
+load(file = paste(getwd(), "/sd.res.fdp.nocov.RData", sep = ""))
+load(file = paste(getwd(), "/sd.res.fdp.cov.RData", sep = ""))
+load(file = paste(getwd(), "/sd.res.fdp.ebp.RData", sep = ""))
+load(file = paste(getwd(), "/sd.res.fdp.g.ebp.RData", sep = ""))
+load(file = paste(getwd(), "/sd.res.fdp.aic.RData", sep = ""))
+load(file = paste(getwd(), "/sd.res.fdp.true.RData", sep = ""))
+
+@
+
+<<auc1, echo = FALSE, results = 'asis'>>=
+
+auc <-function(x) {c(     paste(round(res.auc.nocov[i,ind[x,1],ind[x,2],ind[x,3]], 4),"(",
+                round(sd.res.auc.nocov[i,ind[x,1],ind[x,2],ind[x,3]], 4),")", sep = ""),
+              
+                paste(round(res.auc.cov[i,ind[x,1],ind[x,2],ind[x,3]], 4),"(",
+                round(sd.res.auc.cov[i,ind[x,1],ind[x,2],ind[x,3]], 4),")",sep =""),
+                paste(round(res.auc.ebp[i,ind[x,1],ind[x,2],ind[x,3]], 4),"(",
+                round(sd.res.auc.ebp[i,ind[x,1],ind[x,2],ind[x,3]], 4),")",sep = ""),
+                paste(round(res.auc.g.ebp[i,ind[x,1],ind[x,2],ind[x,3]], 4),"(",
+                round(sd.res.auc.g.ebp[i,ind[x,1],ind[x,2],ind[x,3]], 4),")",sep=""),
+                paste(round(res.auc.aic[i,ind[x,1],ind[x,2],ind[x,3]], 4),"(",
+                round(sd.res.auc.aic[i,ind[x,1],ind[x,2],ind[x,3]], 4),")",sep=""),
+                paste(round(res.auc.true[i,ind[x,1],ind[x,2],ind[x,3]], 4),"(",
+                round(sd.res.auc.true[i,ind[x,1],ind[x,2],ind[x,3]], 4),")",sep = ""),
+                paste(round(res.auc.aebp[i,ind[x,1],ind[x,2],ind[x,3]], 4),"(",
+                round(sd.res.auc.aebp[i,ind[x,1],ind[x,2],ind[x,3]], 4),")",sep=""),
+                paste(round(res.auc.g.aebp[i,ind[x,1],ind[x,2],ind[x,3]], 4),"(",
+                round(sd.res.auc.g.aebp[i,ind[x,1],ind[x,2],ind[x,3]], 4),")",sep="")
+)}
+
+auc.out <- laply(1:dim(ind)[1], function(x)auc(x))
+
+dimnames(auc.out) = 
+  list(c("(1,1,1)", 
+         "(2,1,1)",
+         "(1,2,1)",
+         "(2,2,1)",
+         "(1,1,2)",
+         "(2,1,2)",
+         "(1,2,2)",
+         "(2,2,2)")
+       , 
+       c("nocov", 
+         "cov", 
+         "ebp", 
+         "g.ebp", 
+         "aic", 
+         "true", 
+         "aepb", 
+         "g.aebp"))
+
+
+print(xtable(auc.out, caption = "AUC"),floating = FALSE)
+
+@
+
+
+<<fdp1_1, echo = FALSE, results = 'asis'>>=
+
+
+fdp <-function(x) {c(     paste(round(res.fdp.nocov[i,ind[x,1],ind[x,2],ind[x,3],1], 4),"(",
+                                round(sd.res.fdp.nocov[i,ind[x,1],ind[x,2],ind[x,3],1], 4),")", sep = ""),
+                          
+                          paste(round(res.fdp.cov[i,ind[x,1],ind[x,2],ind[x,3],1], 4),"(",
+                                round(sd.res.fdp.cov[i,ind[x,1],ind[x,2],ind[x,3],1], 4),")",sep =""),
+                          paste(round(res.fdp.ebp[i,ind[x,1],ind[x,2],ind[x,3],1], 4),"(",
+                                round(sd.res.fdp.ebp[i,ind[x,1],ind[x,2],ind[x,3],1], 4),")",sep = ""),
+                          paste(round(res.fdp.g.ebp[i,ind[x,1],ind[x,2],ind[x,3],1], 4),"(",
+                                round(sd.res.fdp.g.ebp[i,ind[x,1],ind[x,2],ind[x,3],1], 4),")",sep=""),
+                          paste(round(res.fdp.aic[i,ind[x,1],ind[x,2],ind[x,3],1], 4),"(",
+                                round(sd.res.fdp.aic[i,ind[x,1],ind[x,2],ind[x,3],1], 4),")",sep=""),
+                          paste(round(res.fdp.true[i,ind[x,1],ind[x,2],ind[x,3],1], 4),"(",
+                                round(sd.res.fdp.true[i,ind[x,1],ind[x,2],ind[x,3],1], 4),")",sep = "")
+)}
+
+
+fdp.out <- laply(1:dim(ind)[1], function(x)fdp(x))
+
+dimnames(fdp.out) = 
+  list(c("(1,1,1)", 
+         "(2,1,1)",
+         "(1,2,1)",
+         "(2,2,1)",
+         "(1,1,2)",
+         "(2,1,2)",
+         "(1,2,2)",
+         "(2,2,2)")
+       , 
+       c("nocov", 
+         "cov", 
+         "ebp", 
+         "g.ebp", 
+         "aic", 
+         "true"))
+
+print(xtable(fdp.out, caption = "Control FDR at level 0.01"), floating = FALSE)
+
+
+@
+
+
+
+<<fdp1_5, echo = FALSE, results = 'asis'>>=
+
+
+fdp <-function(x) {c(     paste(round(res.fdp.nocov[i,ind[x,1],ind[x,2],ind[x,3],2], 4),"(",
+                                round(sd.res.fdp.nocov[i,ind[x,1],ind[x,2],ind[x,3],2], 4),")", sep = ""),
+                          
+                          paste(round(res.fdp.cov[i,ind[x,1],ind[x,2],ind[x,3],2], 4),"(",
+                                round(sd.res.fdp.cov[i,ind[x,1],ind[x,2],ind[x,3],2], 4),")",sep =""),
+                          paste(round(res.fdp.ebp[i,ind[x,1],ind[x,2],ind[x,3],2], 4),"(",
+                                round(sd.res.fdp.ebp[i,ind[x,1],ind[x,2],ind[x,3],2], 4),")",sep = ""),
+                          paste(round(res.fdp.g.ebp[i,ind[x,1],ind[x,2],ind[x,3],2], 4),"(",
+                                round(sd.res.fdp.g.ebp[i,ind[x,1],ind[x,2],ind[x,3],2], 4),")",sep=""),
+                          paste(round(res.fdp.aic[i,ind[x,1],ind[x,2],ind[x,3],2], 4),"(",
+                                round(sd.res.fdp.aic[i,ind[x,1],ind[x,2],ind[x,3],2], 4),")",sep=""),
+                          paste(round(res.fdp.true[i,ind[x,1],ind[x,2],ind[x,3],2], 4),"(",
+                                round(sd.res.fdp.true[i,ind[x,1],ind[x,2],ind[x,3],2], 4),")",sep = "")
+)}
+
+
+fdp.out <- laply(1:dim(ind)[1], function(x)fdp(x))
+
+dimnames(fdp.out) = 
+  list(c("(1,1,1)", 
+         "(2,1,1)",
+         "(1,2,1)",
+         "(2,2,1)",
+         "(1,1,2)",
+         "(2,1,2)",
+         "(1,2,2)",
+         "(2,2,2)")
+       , 
+       c("nocov", 
+         "cov", 
+         "ebp", 
+         "g.ebp", 
+         "aic", 
+         "true"))
+
+print(xtable(fdp.out, caption = "Control FDR at level 0.05"),floating = FALSE)
+
+
+
+@
+
+
+
+<<fdp1_10, echo = FALSE, results = 'asis'>>=
+
+#FDP = .1
+
+
+fdp <-function(x) {c(     paste(round(res.fdp.nocov[i,ind[x,1],ind[x,2],ind[x,3],3], 4),"(",
+                                round(sd.res.fdp.nocov[i,ind[x,1],ind[x,2],ind[x,3],3], 4),")", sep = ""),
+                          
+                          paste(round(res.fdp.cov[i,ind[x,1],ind[x,2],ind[x,3],3], 4),"(",
+                                round(sd.res.fdp.cov[i,ind[x,1],ind[x,2],ind[x,3],3], 4),")",sep =""),
+                          paste(round(res.fdp.ebp[i,ind[x,1],ind[x,2],ind[x,3],3], 4),"(",
+                                round(sd.res.fdp.ebp[i,ind[x,1],ind[x,2],ind[x,3],3], 4),")",sep = ""),
+                          paste(round(res.fdp.g.ebp[i,ind[x,1],ind[x,2],ind[x,3],3], 4),"(",
+                                round(sd.res.fdp.g.ebp[i,ind[x,1],ind[x,2],ind[x,3],3], 4),")",sep=""),
+                          paste(round(res.fdp.aic[i,ind[x,1],ind[x,2],ind[x,3],3], 4),"(",
+                                round(sd.res.fdp.aic[i,ind[x,1],ind[x,2],ind[x,3],3], 4),")",sep=""),
+                          paste(round(res.fdp.true[i,ind[x,1],ind[x,2],ind[x,3],3], 4),"(",
+                                round(sd.res.fdp.true[i,ind[x,1],ind[x,2],ind[x,3],3], 4),")",sep = "")
+)}
+
+
+
+fdp.out <- laply(1:dim(ind)[1], function(x)fdp(x))
+
+dimnames(fdp.out) = 
+  list(c("(1,1,1)", 
+         "(2,1,1)",
+         "(1,2,1)",
+         "(2,2,1)",
+         "(1,1,2)",
+         "(2,1,2)",
+         "(1,2,2)",
+         "(2,2,2)")
+       , 
+       c("nocov", 
+         "cov", 
+         "ebp", 
+         "g.ebp", 
+         "aic", 
+         "true"))
+
+print(xtable(fdp.out, caption = "Control FDR at level 0.10"),floating = FALSE)
+
+
+
+@
+
+
+
+<<fdp1_15, echo = FALSE, results = 'asis'>>=
+
+#FDP = .15
+
+# FDR = .15
+
+
+fdp <-function(x) {c(     paste(round(res.fdp.nocov[i,ind[x,1],ind[x,2],ind[x,3],4], 4),"(",
+                                round(sd.res.fdp.nocov[i,ind[x,1],ind[x,2],ind[x,3],4], 4),")", sep = ""),
+                          
+                          paste(round(res.fdp.cov[i,ind[x,1],ind[x,2],ind[x,3],4], 4),"(",
+                                round(sd.res.fdp.cov[i,ind[x,1],ind[x,2],ind[x,3],4], 4),")",sep =""),
+                          paste(round(res.fdp.ebp[i,ind[x,1],ind[x,2],ind[x,3],4], 4),"(",
+                                round(sd.res.fdp.ebp[i,ind[x,1],ind[x,2],ind[x,3],4], 4),")",sep = ""),
+                          paste(round(res.fdp.g.ebp[i,ind[x,1],ind[x,2],ind[x,3],4], 4),"(",
+                                round(sd.res.fdp.g.ebp[i,ind[x,1],ind[x,2],ind[x,3],4], 4),")",sep=""),
+                          paste(round(res.fdp.aic[i,ind[x,1],ind[x,2],ind[x,3],4], 4),"(",
+                                round(sd.res.fdp.aic[i,ind[x,1],ind[x,2],ind[x,3],4], 4),")",sep=""),
+                          paste(round(res.fdp.true[i,ind[x,1],ind[x,2],ind[x,3],4], 4),"(",
+                                round(sd.res.fdp.true[i,ind[x,1],ind[x,2],ind[x,3],4], 4),")",sep = "")
+)}
+
+
+fdp.out <- laply(1:dim(ind)[1], function(x)fdp(x))
+
+dimnames(fdp.out) = 
+  list(c("(1,1,1)", 
+         "(2,1,1)",
+         "(1,2,1)",
+         "(2,2,1)",
+         "(1,1,2)",
+         "(2,1,2)",
+         "(1,2,2)",
+         "(2,2,2)")
+       , 
+       c("nocov", 
+         "cov", 
+         "ebp", 
+         "g.ebp", 
+         "aic", 
+         "true"))
+
+print(xtable(fdp.out, caption = "Control FDR at level 0.15"),floating = FALSE)
+
+
+@
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%
+\section{$p.beta = .8$}
+The simulation of count data is without offset.
+
+$j: i.beta(0.1,0.5)$ , $k: S(1.25, 2)$, $l: L(.25, .5),U(.75, 1)$.
+
+<<loaddata08,echo=FALSE>>=
+setwd("P:/FDR dependence/Model Selection/logoffset_in_simulation_logoffset_in_model_negative_beta_positive_beta_50_50/result/pbeta_0.8")
+i <- 4
+
+
+ind <- expand.grid(j = c(1,2), k = c(1,2), l = c(1,2))
+
+
+#load(file = paste(getwd(), "/sim1.RData", sep = ""))
+load(file = paste(getwd(), "/res.auc.nocov.RData", sep = ""))
+load(file = paste(getwd(), "/res.auc.cov.RData", sep = ""))
+load(file = paste(getwd(), "/res.auc.ebp.RData", sep = ""))
+load(file = paste(getwd(), "/res.auc.g.ebp.RData", sep = ""))
+load(file = paste(getwd(), "/res.auc.aic.RData", sep = ""))
+load(file = paste(getwd(), "/res.auc.true.RData", sep = ""))
+load(file = paste(getwd(), "/res.auc.aebp.RData", sep = ""))
+load(file = paste(getwd(), "/res.auc.g.aebp.RData", sep = ""))
+
+load(file = paste(getwd(), "/res.fdp.nocov.RData", sep = ""))
+load(file = paste(getwd(), "/res.fdp.cov.RData", sep = ""))
+load(file = paste(getwd(), "/res.fdp.ebp.RData", sep = ""))
+load(file = paste(getwd(), "/res.fdp.g.ebp.RData", sep = ""))
+load(file = paste(getwd(), "/res.fdp.aic.RData", sep = ""))
+load(file = paste(getwd(), "/res.fdp.true.RData", sep = ""))
+
+load(file = paste(getwd(), "/sd.res.auc.nocov.RData", sep = ""))
+load(file = paste(getwd(), "/sd.res.auc.cov.RData", sep = ""))
+load(file = paste(getwd(), "/sd.res.auc.ebp.RData", sep = ""))
+load(file = paste(getwd(), "/sd.res.auc.g.ebp.RData", sep = ""))
+load(file = paste(getwd(), "/sd.res.auc.aic.RData", sep = ""))
+load(file = paste(getwd(), "/sd.res.auc.true.RData", sep = ""))
+load(file = paste(getwd(), "/sd.res.auc.aebp.RData", sep = ""))
+load(file = paste(getwd(), "/sd.res.auc.g.aebp.RData", sep = ""))
+
+
+
+load(file = paste(getwd(), "/sd.res.fdp.nocov.RData", sep = ""))
+load(file = paste(getwd(), "/sd.res.fdp.cov.RData", sep = ""))
+load(file = paste(getwd(), "/sd.res.fdp.ebp.RData", sep = ""))
+load(file = paste(getwd(), "/sd.res.fdp.g.ebp.RData", sep = ""))
+load(file = paste(getwd(), "/sd.res.fdp.aic.RData", sep = ""))
+load(file = paste(getwd(), "/sd.res.fdp.true.RData", sep = ""))
+
+@
+
+<<auc08, echo = FALSE, results = 'asis'>>=
+
+auc <-function(x) {c(     paste(round(res.auc.nocov[i,ind[x,1],ind[x,2],ind[x,3]], 4),"(",
+                round(sd.res.auc.nocov[i,ind[x,1],ind[x,2],ind[x,3]], 4),")", sep = ""),
+              
+                paste(round(res.auc.cov[i,ind[x,1],ind[x,2],ind[x,3]], 4),"(",
+                round(sd.res.auc.cov[i,ind[x,1],ind[x,2],ind[x,3]], 4),")",sep =""),
+                paste(round(res.auc.ebp[i,ind[x,1],ind[x,2],ind[x,3]], 4),"(",
+                round(sd.res.auc.ebp[i,ind[x,1],ind[x,2],ind[x,3]], 4),")",sep = ""),
+                paste(round(res.auc.g.ebp[i,ind[x,1],ind[x,2],ind[x,3]], 4),"(",
+                round(sd.res.auc.g.ebp[i,ind[x,1],ind[x,2],ind[x,3]], 4),")",sep=""),
+                paste(round(res.auc.aic[i,ind[x,1],ind[x,2],ind[x,3]], 4),"(",
+                round(sd.res.auc.aic[i,ind[x,1],ind[x,2],ind[x,3]], 4),")",sep=""),
+                paste(round(res.auc.true[i,ind[x,1],ind[x,2],ind[x,3]], 4),"(",
+                round(sd.res.auc.true[i,ind[x,1],ind[x,2],ind[x,3]], 4),")",sep = ""),
+                paste(round(res.auc.aebp[i,ind[x,1],ind[x,2],ind[x,3]], 4),"(",
+                round(sd.res.auc.aebp[i,ind[x,1],ind[x,2],ind[x,3]], 4),")",sep=""),
+                paste(round(res.auc.g.aebp[i,ind[x,1],ind[x,2],ind[x,3]], 4),"(",
+                round(sd.res.auc.g.aebp[i,ind[x,1],ind[x,2],ind[x,3]], 4),")",sep="")
+)}
+
+auc.out <- laply(1:dim(ind)[1], function(x)auc(x))
+
+dimnames(auc.out) = 
+  list(c("(1,1,1)", 
+         "(2,1,1)",
+         "(1,2,1)",
+         "(2,2,1)",
+         "(1,1,2)",
+         "(2,1,2)",
+         "(1,2,2)",
+         "(2,2,2)")
+       , 
+       c("nocov", 
+         "cov", 
+         "ebp", 
+         "g.ebp", 
+         "aic", 
+         "true", 
+         "aepb", 
+         "g.aebp"))
+
+
+print(xtable(auc.out, caption = "AUC"),floating = FALSE)
+@
+
+
+<<fdp08_1, echo = FALSE, results = 'asis'>>=
+
+
+fdp <-function(x) {c(     paste(round(res.fdp.nocov[i,ind[x,1],ind[x,2],ind[x,3],1], 4),"(",
+                                round(sd.res.fdp.nocov[i,ind[x,1],ind[x,2],ind[x,3],1], 4),")", sep = ""),
+                          
+                          paste(round(res.fdp.cov[i,ind[x,1],ind[x,2],ind[x,3],1], 4),"(",
+                                round(sd.res.fdp.cov[i,ind[x,1],ind[x,2],ind[x,3],1], 4),")",sep =""),
+                          paste(round(res.fdp.ebp[i,ind[x,1],ind[x,2],ind[x,3],1], 4),"(",
+                                round(sd.res.fdp.ebp[i,ind[x,1],ind[x,2],ind[x,3],1], 4),")",sep = ""),
+                          paste(round(res.fdp.g.ebp[i,ind[x,1],ind[x,2],ind[x,3],1], 4),"(",
+                                round(sd.res.fdp.g.ebp[i,ind[x,1],ind[x,2],ind[x,3],1], 4),")",sep=""),
+                          paste(round(res.fdp.aic[i,ind[x,1],ind[x,2],ind[x,3],1], 4),"(",
+                                round(sd.res.fdp.aic[i,ind[x,1],ind[x,2],ind[x,3],1], 4),")",sep=""),
+                          paste(round(res.fdp.true[i,ind[x,1],ind[x,2],ind[x,3],1], 4),"(",
+                                round(sd.res.fdp.true[i,ind[x,1],ind[x,2],ind[x,3],1], 4),")",sep = "")
+)}
+
+
+fdp.out <- laply(1:dim(ind)[1], function(x)fdp(x))
+
+dimnames(fdp.out) = 
+  list(c("(1,1,1)", 
+         "(2,1,1)",
+         "(1,2,1)",
+         "(2,2,1)",
+         "(1,1,2)",
+         "(2,1,2)",
+         "(1,2,2)",
+         "(2,2,2)")
+       , 
+       c("nocov", 
+         "cov", 
+         "ebp", 
+         "g.ebp", 
+         "aic", 
+         "true"))
+
+print(xtable(fdp.out, caption = "Control FDR at level 0.01"), floating = FALSE)
+
+
+
+@
+
+
+
+<<fdp08_5, echo = FALSE, results = 'asis'>>=
+
+
+fdp <-function(x) {c(     paste(round(res.fdp.nocov[i,ind[x,1],ind[x,2],ind[x,3],2], 4),"(",
+                                round(sd.res.fdp.nocov[i,ind[x,1],ind[x,2],ind[x,3],2], 4),")", sep = ""),
+                          
+                          paste(round(res.fdp.cov[i,ind[x,1],ind[x,2],ind[x,3],2], 4),"(",
+                                round(sd.res.fdp.cov[i,ind[x,1],ind[x,2],ind[x,3],2], 4),")",sep =""),
+                          paste(round(res.fdp.ebp[i,ind[x,1],ind[x,2],ind[x,3],2], 4),"(",
+                                round(sd.res.fdp.ebp[i,ind[x,1],ind[x,2],ind[x,3],2], 4),")",sep = ""),
+                          paste(round(res.fdp.g.ebp[i,ind[x,1],ind[x,2],ind[x,3],2], 4),"(",
+                                round(sd.res.fdp.g.ebp[i,ind[x,1],ind[x,2],ind[x,3],2], 4),")",sep=""),
+                          paste(round(res.fdp.aic[i,ind[x,1],ind[x,2],ind[x,3],2], 4),"(",
+                                round(sd.res.fdp.aic[i,ind[x,1],ind[x,2],ind[x,3],2], 4),")",sep=""),
+                          paste(round(res.fdp.true[i,ind[x,1],ind[x,2],ind[x,3],2], 4),"(",
+                                round(sd.res.fdp.true[i,ind[x,1],ind[x,2],ind[x,3],2], 4),")",sep = "")
+)}
+
+
+fdp.out <- laply(1:dim(ind)[1], function(x)fdp(x))
+
+dimnames(fdp.out) = 
+  list(c("(1,1,1)", 
+         "(2,1,1)",
+         "(1,2,1)",
+         "(2,2,1)",
+         "(1,1,2)",
+         "(2,1,2)",
+         "(1,2,2)",
+         "(2,2,2)")
+       , 
+       c("nocov", 
+         "cov", 
+         "ebp", 
+         "g.ebp", 
+         "aic", 
+         "true"))
+
+print(xtable(fdp.out, caption = "Control FDR at level 0.05"),floating = FALSE)
+
+
+@
+
+
+
+<<fdp08_10, echo = FALSE, results = 'asis'>>=
+
+#FDP = .1
+
+
+fdp <-function(x) {c(     paste(round(res.fdp.nocov[i,ind[x,1],ind[x,2],ind[x,3],3], 4),"(",
+                                round(sd.res.fdp.nocov[i,ind[x,1],ind[x,2],ind[x,3],3], 4),")", sep = ""),
+                          
+                          paste(round(res.fdp.cov[i,ind[x,1],ind[x,2],ind[x,3],3], 4),"(",
+                                round(sd.res.fdp.cov[i,ind[x,1],ind[x,2],ind[x,3],3], 4),")",sep =""),
+                          paste(round(res.fdp.ebp[i,ind[x,1],ind[x,2],ind[x,3],3], 4),"(",
+                                round(sd.res.fdp.ebp[i,ind[x,1],ind[x,2],ind[x,3],3], 4),")",sep = ""),
+                          paste(round(res.fdp.g.ebp[i,ind[x,1],ind[x,2],ind[x,3],3], 4),"(",
+                                round(sd.res.fdp.g.ebp[i,ind[x,1],ind[x,2],ind[x,3],3], 4),")",sep=""),
+                          paste(round(res.fdp.aic[i,ind[x,1],ind[x,2],ind[x,3],3], 4),"(",
+                                round(sd.res.fdp.aic[i,ind[x,1],ind[x,2],ind[x,3],3], 4),")",sep=""),
+                          paste(round(res.fdp.true[i,ind[x,1],ind[x,2],ind[x,3],3], 4),"(",
+                                round(sd.res.fdp.true[i,ind[x,1],ind[x,2],ind[x,3],3], 4),")",sep = "")
+)}
+
+
+
+fdp.out <- laply(1:dim(ind)[1], function(x)fdp(x))
+
+dimnames(fdp.out) = 
+  list(c("(1,1,1)", 
+         "(2,1,1)",
+         "(1,2,1)",
+         "(2,2,1)",
+         "(1,1,2)",
+         "(2,1,2)",
+         "(1,2,2)",
+         "(2,2,2)")
+       , 
+       c("nocov", 
+         "cov", 
+         "ebp", 
+         "g.ebp", 
+         "aic", 
+         "true"))
+
+print(xtable(fdp.out, caption = "Control FDR at level 0.10"),floating = FALSE)
+
+
+@
+
+
+
+<<fdp08_15, echo = FALSE, results = 'asis'>>=
+
+#FDP = .15
+
+# FDR = .15
+
+
+fdp <-function(x) {c(     paste(round(res.fdp.nocov[i,ind[x,1],ind[x,2],ind[x,3],4], 4),"(",
+                                round(sd.res.fdp.nocov[i,ind[x,1],ind[x,2],ind[x,3],4], 4),")", sep = ""),
+                          
+                          paste(round(res.fdp.cov[i,ind[x,1],ind[x,2],ind[x,3],4], 4),"(",
+                                round(sd.res.fdp.cov[i,ind[x,1],ind[x,2],ind[x,3],4], 4),")",sep =""),
+                          paste(round(res.fdp.ebp[i,ind[x,1],ind[x,2],ind[x,3],4], 4),"(",
+                                round(sd.res.fdp.ebp[i,ind[x,1],ind[x,2],ind[x,3],4], 4),")",sep = ""),
+                          paste(round(res.fdp.g.ebp[i,ind[x,1],ind[x,2],ind[x,3],4], 4),"(",
+                                round(sd.res.fdp.g.ebp[i,ind[x,1],ind[x,2],ind[x,3],4], 4),")",sep=""),
+                          paste(round(res.fdp.aic[i,ind[x,1],ind[x,2],ind[x,3],4], 4),"(",
+                                round(sd.res.fdp.aic[i,ind[x,1],ind[x,2],ind[x,3],4], 4),")",sep=""),
+                          paste(round(res.fdp.true[i,ind[x,1],ind[x,2],ind[x,3],4], 4),"(",
+                                round(sd.res.fdp.true[i,ind[x,1],ind[x,2],ind[x,3],4], 4),")",sep = "")
+)}
+
+
+fdp.out <- laply(1:dim(ind)[1], function(x)fdp(x))
+
+dimnames(fdp.out) = 
+  list(c("(1,1,1)", 
+         "(2,1,1)",
+         "(1,2,1)",
+         "(2,2,1)",
+         "(1,1,2)",
+         "(2,1,2)",
+         "(1,2,2)",
+         "(2,2,2)")
+       , 
+       c("nocov", 
+         "cov", 
+         "ebp", 
+         "g.ebp", 
+         "aic", 
+         "true"))
+
+print(xtable(fdp.out, caption = "Control FDR at level 0.15"),floating = FALSE)
+
+
+@
+
+%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%
+\section{$p.beta = .5$}
+The simulation of count data is without offset.
+
+$j: i.beta(0.1,0.5)$ , $k: S(1.25, 2)$, $l: L(.25, .5),U(.75, 1)$.
+
+<<loaddata05,echo=FALSE>>=
+setwd("P:/FDR dependence/Model Selection/logoffset_in_simulation_logoffset_in_model_negative_beta_positive_beta_50_50/result/pbeta_0.5")
+i <- 3
+
+
+ind <- expand.grid(j = c(1,2), k = c(1,2), l = c(1,2))
+
+
+#load(file = paste(getwd(), "/sim1.RData", sep = ""))
+load(file = paste(getwd(), "/res.auc.nocov.RData", sep = ""))
+load(file = paste(getwd(), "/res.auc.cov.RData", sep = ""))
+load(file = paste(getwd(), "/res.auc.ebp.RData", sep = ""))
+load(file = paste(getwd(), "/res.auc.g.ebp.RData", sep = ""))
+load(file = paste(getwd(), "/res.auc.aic.RData", sep = ""))
+load(file = paste(getwd(), "/res.auc.true.RData", sep = ""))
+load(file = paste(getwd(), "/res.auc.aebp.RData", sep = ""))
+load(file = paste(getwd(), "/res.auc.g.aebp.RData", sep = ""))
+
+load(file = paste(getwd(), "/res.fdp.nocov.RData", sep = ""))
+load(file = paste(getwd(), "/res.fdp.cov.RData", sep = ""))
+load(file = paste(getwd(), "/res.fdp.ebp.RData", sep = ""))
+load(file = paste(getwd(), "/res.fdp.g.ebp.RData", sep = ""))
+load(file = paste(getwd(), "/res.fdp.aic.RData", sep = ""))
+load(file = paste(getwd(), "/res.fdp.true.RData", sep = ""))
+
+load(file = paste(getwd(), "/sd.res.auc.nocov.RData", sep = ""))
+load(file = paste(getwd(), "/sd.res.auc.cov.RData", sep = ""))
+load(file = paste(getwd(), "/sd.res.auc.ebp.RData", sep = ""))
+load(file = paste(getwd(), "/sd.res.auc.g.ebp.RData", sep = ""))
+load(file = paste(getwd(), "/sd.res.auc.aic.RData", sep = ""))
+load(file = paste(getwd(), "/sd.res.auc.true.RData", sep = ""))
+load(file = paste(getwd(), "/sd.res.auc.aebp.RData", sep = ""))
+load(file = paste(getwd(), "/sd.res.auc.g.aebp.RData", sep = ""))
+
+
+
+load(file = paste(getwd(), "/sd.res.fdp.nocov.RData", sep = ""))
+load(file = paste(getwd(), "/sd.res.fdp.cov.RData", sep = ""))
+load(file = paste(getwd(), "/sd.res.fdp.ebp.RData", sep = ""))
+load(file = paste(getwd(), "/sd.res.fdp.g.ebp.RData", sep = ""))
+load(file = paste(getwd(), "/sd.res.fdp.aic.RData", sep = ""))
+load(file = paste(getwd(), "/sd.res.fdp.true.RData", sep = ""))
+
+@
+
+<<auc05, echo = FALSE, results = 'asis'>>=
+
+auc <-function(x) {c(     paste(round(res.auc.nocov[i,ind[x,1],ind[x,2],ind[x,3]], 4),"(",
+                round(sd.res.auc.nocov[i,ind[x,1],ind[x,2],ind[x,3]], 4),")", sep = ""),
+              
+                paste(round(res.auc.cov[i,ind[x,1],ind[x,2],ind[x,3]], 4),"(",
+                round(sd.res.auc.cov[i,ind[x,1],ind[x,2],ind[x,3]], 4),")",sep =""),
+                paste(round(res.auc.ebp[i,ind[x,1],ind[x,2],ind[x,3]], 4),"(",
+                round(sd.res.auc.ebp[i,ind[x,1],ind[x,2],ind[x,3]], 4),")",sep = ""),
+                paste(round(res.auc.g.ebp[i,ind[x,1],ind[x,2],ind[x,3]], 4),"(",
+                round(sd.res.auc.g.ebp[i,ind[x,1],ind[x,2],ind[x,3]], 4),")",sep=""),
+                paste(round(res.auc.aic[i,ind[x,1],ind[x,2],ind[x,3]], 4),"(",
+                round(sd.res.auc.aic[i,ind[x,1],ind[x,2],ind[x,3]], 4),")",sep=""),
+                paste(round(res.auc.true[i,ind[x,1],ind[x,2],ind[x,3]], 4),"(",
+                round(sd.res.auc.true[i,ind[x,1],ind[x,2],ind[x,3]], 4),")",sep = ""),
+                paste(round(res.auc.aebp[i,ind[x,1],ind[x,2],ind[x,3]], 4),"(",
+                round(sd.res.auc.aebp[i,ind[x,1],ind[x,2],ind[x,3]], 4),")",sep=""),
+                paste(round(res.auc.g.aebp[i,ind[x,1],ind[x,2],ind[x,3]], 4),"(",
+                round(sd.res.auc.g.aebp[i,ind[x,1],ind[x,2],ind[x,3]], 4),")",sep="")
+)}
+
+auc.out <- laply(1:dim(ind)[1], function(x)auc(x))
+
+dimnames(auc.out) = 
+  list(c("(1,1,1)", 
+         "(2,1,1)",
+         "(1,2,1)",
+         "(2,2,1)",
+         "(1,1,2)",
+         "(2,1,2)",
+         "(1,2,2)",
+         "(2,2,2)")
+       , 
+       c("nocov", 
+         "cov", 
+         "ebp", 
+         "g.ebp", 
+         "aic", 
+         "true", 
+         "aepb", 
+         "g.aebp"))
+
+
+print(xtable(auc.out, caption = "AUC"),floating = FALSE)
+@
+
+
+<<fdp05_1, echo = FALSE, results = 'asis'>>=
+
+
+fdp <-function(x) {c(     paste(round(res.fdp.nocov[i,ind[x,1],ind[x,2],ind[x,3],1], 4),"(",
+                                round(sd.res.fdp.nocov[i,ind[x,1],ind[x,2],ind[x,3],1], 4),")", sep = ""),
+                          
+                          paste(round(res.fdp.cov[i,ind[x,1],ind[x,2],ind[x,3],1], 4),"(",
+                                round(sd.res.fdp.cov[i,ind[x,1],ind[x,2],ind[x,3],1], 4),")",sep =""),
+                          paste(round(res.fdp.ebp[i,ind[x,1],ind[x,2],ind[x,3],1], 4),"(",
+                                round(sd.res.fdp.ebp[i,ind[x,1],ind[x,2],ind[x,3],1], 4),")",sep = ""),
+                          paste(round(res.fdp.g.ebp[i,ind[x,1],ind[x,2],ind[x,3],1], 4),"(",
+                                round(sd.res.fdp.g.ebp[i,ind[x,1],ind[x,2],ind[x,3],1], 4),")",sep=""),
+                          paste(round(res.fdp.aic[i,ind[x,1],ind[x,2],ind[x,3],1], 4),"(",
+                                round(sd.res.fdp.aic[i,ind[x,1],ind[x,2],ind[x,3],1], 4),")",sep=""),
+                          paste(round(res.fdp.true[i,ind[x,1],ind[x,2],ind[x,3],1], 4),"(",
+                                round(sd.res.fdp.true[i,ind[x,1],ind[x,2],ind[x,3],1], 4),")",sep = "")
+)}
+
+
+fdp.out <- laply(1:dim(ind)[1], function(x)fdp(x))
+
+dimnames(fdp.out) = 
+  list(c("(1,1,1)", 
+         "(2,1,1)",
+         "(1,2,1)",
+         "(2,2,1)",
+         "(1,1,2)",
+         "(2,1,2)",
+         "(1,2,2)",
+         "(2,2,2)")
+       , 
+       c("nocov", 
+         "cov", 
+         "ebp", 
+         "g.ebp", 
+         "aic", 
+         "true"))
+
+print(xtable(fdp.out, caption = "Control FDR at level 0.01"), floating = FALSE)
+
+
+@
+
+
+
+<<fdp05_5, echo = FALSE, results = 'asis'>>=
+
+
+fdp <-function(x) {c(     paste(round(res.fdp.nocov[i,ind[x,1],ind[x,2],ind[x,3],2], 4),"(",
+                                round(sd.res.fdp.nocov[i,ind[x,1],ind[x,2],ind[x,3],2], 4),")", sep = ""),
+                          
+                          paste(round(res.fdp.cov[i,ind[x,1],ind[x,2],ind[x,3],2], 4),"(",
+                                round(sd.res.fdp.cov[i,ind[x,1],ind[x,2],ind[x,3],2], 4),")",sep =""),
+                          paste(round(res.fdp.ebp[i,ind[x,1],ind[x,2],ind[x,3],2], 4),"(",
+                                round(sd.res.fdp.ebp[i,ind[x,1],ind[x,2],ind[x,3],2], 4),")",sep = ""),
+                          paste(round(res.fdp.g.ebp[i,ind[x,1],ind[x,2],ind[x,3],2], 4),"(",
+                                round(sd.res.fdp.g.ebp[i,ind[x,1],ind[x,2],ind[x,3],2], 4),")",sep=""),
+                          paste(round(res.fdp.aic[i,ind[x,1],ind[x,2],ind[x,3],2], 4),"(",
+                                round(sd.res.fdp.aic[i,ind[x,1],ind[x,2],ind[x,3],2], 4),")",sep=""),
+                          paste(round(res.fdp.true[i,ind[x,1],ind[x,2],ind[x,3],2], 4),"(",
+                                round(sd.res.fdp.true[i,ind[x,1],ind[x,2],ind[x,3],2], 4),")",sep = "")
+)}
+
+
+fdp.out <- laply(1:dim(ind)[1], function(x)fdp(x))
+
+dimnames(fdp.out) = 
+  list(c("(1,1,1)", 
+         "(2,1,1)",
+         "(1,2,1)",
+         "(2,2,1)",
+         "(1,1,2)",
+         "(2,1,2)",
+         "(1,2,2)",
+         "(2,2,2)")
+       , 
+       c("nocov", 
+         "cov", 
+         "ebp", 
+         "g.ebp", 
+         "aic", 
+         "true"))
+
+print(xtable(fdp.out, caption = "Control FDR at level 0.05"),floating = FALSE)
+
+
+@
+
+
+
+<<fdp05_10, echo = FALSE, results = 'asis'>>=
+
+#FDP = .1
+
+
+fdp <-function(x) {c(     paste(round(res.fdp.nocov[i,ind[x,1],ind[x,2],ind[x,3],3], 4),"(",
+                                round(sd.res.fdp.nocov[i,ind[x,1],ind[x,2],ind[x,3],3], 4),")", sep = ""),
+                          
+                          paste(round(res.fdp.cov[i,ind[x,1],ind[x,2],ind[x,3],3], 4),"(",
+                                round(sd.res.fdp.cov[i,ind[x,1],ind[x,2],ind[x,3],3], 4),")",sep =""),
+                          paste(round(res.fdp.ebp[i,ind[x,1],ind[x,2],ind[x,3],3], 4),"(",
+                                round(sd.res.fdp.ebp[i,ind[x,1],ind[x,2],ind[x,3],3], 4),")",sep = ""),
+                          paste(round(res.fdp.g.ebp[i,ind[x,1],ind[x,2],ind[x,3],3], 4),"(",
+                                round(sd.res.fdp.g.ebp[i,ind[x,1],ind[x,2],ind[x,3],3], 4),")",sep=""),
+                          paste(round(res.fdp.aic[i,ind[x,1],ind[x,2],ind[x,3],3], 4),"(",
+                                round(sd.res.fdp.aic[i,ind[x,1],ind[x,2],ind[x,3],3], 4),")",sep=""),
+                          paste(round(res.fdp.true[i,ind[x,1],ind[x,2],ind[x,3],3], 4),"(",
+                                round(sd.res.fdp.true[i,ind[x,1],ind[x,2],ind[x,3],3], 4),")",sep = "")
+)}
+
+
+
+fdp.out <- laply(1:dim(ind)[1], function(x)fdp(x))
+
+dimnames(fdp.out) = 
+  list(c("(1,1,1)", 
+         "(2,1,1)",
+         "(1,2,1)",
+         "(2,2,1)",
+         "(1,1,2)",
+         "(2,1,2)",
+         "(1,2,2)",
+         "(2,2,2)")
+       , 
+       c("nocov", 
+         "cov", 
+         "ebp", 
+         "g.ebp", 
+         "aic", 
+         "true"))
+
+print(xtable(fdp.out, caption = "Control FDR at level 0.10"),floating = FALSE)
+
+
+@
+
+
+
+<<fdp05_15, echo = FALSE, results = 'asis'>>=
+
+#FDP = .15
+
+# FDR = .15
+
+
+fdp <-function(x) {c(     paste(round(res.fdp.nocov[i,ind[x,1],ind[x,2],ind[x,3],4], 4),"(",
+                                round(sd.res.fdp.nocov[i,ind[x,1],ind[x,2],ind[x,3],4], 4),")", sep = ""),
+                          
+                          paste(round(res.fdp.cov[i,ind[x,1],ind[x,2],ind[x,3],4], 4),"(",
+                                round(sd.res.fdp.cov[i,ind[x,1],ind[x,2],ind[x,3],4], 4),")",sep =""),
+                          paste(round(res.fdp.ebp[i,ind[x,1],ind[x,2],ind[x,3],4], 4),"(",
+                                round(sd.res.fdp.ebp[i,ind[x,1],ind[x,2],ind[x,3],4], 4),")",sep = ""),
+                          paste(round(res.fdp.g.ebp[i,ind[x,1],ind[x,2],ind[x,3],4], 4),"(",
+                                round(sd.res.fdp.g.ebp[i,ind[x,1],ind[x,2],ind[x,3],4], 4),")",sep=""),
+                          paste(round(res.fdp.aic[i,ind[x,1],ind[x,2],ind[x,3],4], 4),"(",
+                                round(sd.res.fdp.aic[i,ind[x,1],ind[x,2],ind[x,3],4], 4),")",sep=""),
+                          paste(round(res.fdp.true[i,ind[x,1],ind[x,2],ind[x,3],4], 4),"(",
+                                round(sd.res.fdp.true[i,ind[x,1],ind[x,2],ind[x,3],4], 4),")",sep = "")
+)}
+
+
+fdp.out <- laply(1:dim(ind)[1], function(x)fdp(x))
+
+dimnames(fdp.out) = 
+  list(c("(1,1,1)", 
+         "(2,1,1)",
+         "(1,2,1)",
+         "(2,2,1)",
+         "(1,1,2)",
+         "(2,1,2)",
+         "(1,2,2)",
+         "(2,2,2)")
+       , 
+       c("nocov", 
+         "cov", 
+         "ebp", 
+         "g.ebp", 
+         "aic", 
+         "true"))
+
+print(xtable(fdp.out, caption = "Control FDR at level 0.15"),floating = FALSE)
+
+
+@
+
+
+%%%%%%%%%%%%%%%
+% 
+
+%%%%%%%%%%%%%%%%%%%%%%%%
+\section{$p.beta = .2$}
+The simulation of count data is without offset.
+
+$j: i.beta(0.1,0.5)$ , $k: S(1.25, 2)$, $l: L(.25, .5),U(.75, 1)$.
+
+<<loaddata02,echo=FALSE>>=
+setwd("P:/FDR dependence/Model Selection/logoffset_in_simulation_logoffset_in_model_negative_beta_positive_beta_50_50/result/pbeta_0.2")
+i <- 2
+
+
+ind <- expand.grid(j = c(1,2), k = c(1,2), l = c(1,2))
+
+
+#load(file = paste(getwd(), "/sim1.RData", sep = ""))
+load(file = paste(getwd(), "/res.auc.nocov.RData", sep = ""))
+load(file = paste(getwd(), "/res.auc.cov.RData", sep = ""))
+load(file = paste(getwd(), "/res.auc.ebp.RData", sep = ""))
+load(file = paste(getwd(), "/res.auc.g.ebp.RData", sep = ""))
+load(file = paste(getwd(), "/res.auc.aic.RData", sep = ""))
+load(file = paste(getwd(), "/res.auc.true.RData", sep = ""))
+load(file = paste(getwd(), "/res.auc.aebp.RData", sep = ""))
+load(file = paste(getwd(), "/res.auc.g.aebp.RData", sep = ""))
+
+load(file = paste(getwd(), "/res.fdp.nocov.RData", sep = ""))
+load(file = paste(getwd(), "/res.fdp.cov.RData", sep = ""))
+load(file = paste(getwd(), "/res.fdp.ebp.RData", sep = ""))
+load(file = paste(getwd(), "/res.fdp.g.ebp.RData", sep = ""))
+load(file = paste(getwd(), "/res.fdp.aic.RData", sep = ""))
+load(file = paste(getwd(), "/res.fdp.true.RData", sep = ""))
+
+load(file = paste(getwd(), "/sd.res.auc.nocov.RData", sep = ""))
+load(file = paste(getwd(), "/sd.res.auc.cov.RData", sep = ""))
+load(file = paste(getwd(), "/sd.res.auc.ebp.RData", sep = ""))
+load(file = paste(getwd(), "/sd.res.auc.g.ebp.RData", sep = ""))
+load(file = paste(getwd(), "/sd.res.auc.aic.RData", sep = ""))
+load(file = paste(getwd(), "/sd.res.auc.true.RData", sep = ""))
+load(file = paste(getwd(), "/sd.res.auc.aebp.RData", sep = ""))
+load(file = paste(getwd(), "/sd.res.auc.g.aebp.RData", sep = ""))
+
+
+
+load(file = paste(getwd(), "/sd.res.fdp.nocov.RData", sep = ""))
+load(file = paste(getwd(), "/sd.res.fdp.cov.RData", sep = ""))
+load(file = paste(getwd(), "/sd.res.fdp.ebp.RData", sep = ""))
+load(file = paste(getwd(), "/sd.res.fdp.g.ebp.RData", sep = ""))
+load(file = paste(getwd(), "/sd.res.fdp.aic.RData", sep = ""))
+load(file = paste(getwd(), "/sd.res.fdp.true.RData", sep = ""))
+
+@
+
+<<auc02, echo = FALSE, results = 'asis'>>=
+
+auc <-function(x) {c(     paste(round(res.auc.nocov[i,ind[x,1],ind[x,2],ind[x,3]], 4),"(",
+                round(sd.res.auc.nocov[i,ind[x,1],ind[x,2],ind[x,3]], 4),")", sep = ""),
+              
+                paste(round(res.auc.cov[i,ind[x,1],ind[x,2],ind[x,3]], 4),"(",
+                round(sd.res.auc.cov[i,ind[x,1],ind[x,2],ind[x,3]], 4),")",sep =""),
+                paste(round(res.auc.ebp[i,ind[x,1],ind[x,2],ind[x,3]], 4),"(",
+                round(sd.res.auc.ebp[i,ind[x,1],ind[x,2],ind[x,3]], 4),")",sep = ""),
+                paste(round(res.auc.g.ebp[i,ind[x,1],ind[x,2],ind[x,3]], 4),"(",
+                round(sd.res.auc.g.ebp[i,ind[x,1],ind[x,2],ind[x,3]], 4),")",sep=""),
+                paste(round(res.auc.aic[i,ind[x,1],ind[x,2],ind[x,3]], 4),"(",
+                round(sd.res.auc.aic[i,ind[x,1],ind[x,2],ind[x,3]], 4),")",sep=""),
+                paste(round(res.auc.true[i,ind[x,1],ind[x,2],ind[x,3]], 4),"(",
+                round(sd.res.auc.true[i,ind[x,1],ind[x,2],ind[x,3]], 4),")",sep = ""),
+                paste(round(res.auc.aebp[i,ind[x,1],ind[x,2],ind[x,3]], 4),"(",
+                round(sd.res.auc.aebp[i,ind[x,1],ind[x,2],ind[x,3]], 4),")",sep=""),
+                paste(round(res.auc.g.aebp[i,ind[x,1],ind[x,2],ind[x,3]], 4),"(",
+                round(sd.res.auc.g.aebp[i,ind[x,1],ind[x,2],ind[x,3]], 4),")",sep="")
+)}
+
+auc.out <- laply(1:dim(ind)[1], function(x)auc(x))
+
+dimnames(auc.out) = 
+  list(c("(1,1,1)", 
+         "(2,1,1)",
+         "(1,2,1)",
+         "(2,2,1)",
+         "(1,1,2)",
+         "(2,1,2)",
+         "(1,2,2)",
+         "(2,2,2)")
+       , 
+       c("nocov", 
+         "cov", 
+         "ebp", 
+         "g.ebp", 
+         "aic", 
+         "true", 
+         "aepb", 
+         "g.aebp"))
+
+
+print(xtable(auc.out, caption = "AUC"),floating = FALSE)
+@
+
+
+<<fdp02_1, echo = FALSE, results = 'asis'>>=
+
+
+fdp <-function(x) {c(     paste(round(res.fdp.nocov[i,ind[x,1],ind[x,2],ind[x,3],1], 4),"(",
+                                round(sd.res.fdp.nocov[i,ind[x,1],ind[x,2],ind[x,3],1], 4),")", sep = ""),
+                          
+                          paste(round(res.fdp.cov[i,ind[x,1],ind[x,2],ind[x,3],1], 4),"(",
+                                round(sd.res.fdp.cov[i,ind[x,1],ind[x,2],ind[x,3],1], 4),")",sep =""),
+                          paste(round(res.fdp.ebp[i,ind[x,1],ind[x,2],ind[x,3],1], 4),"(",
+                                round(sd.res.fdp.ebp[i,ind[x,1],ind[x,2],ind[x,3],1], 4),")",sep = ""),
+                          paste(round(res.fdp.g.ebp[i,ind[x,1],ind[x,2],ind[x,3],1], 4),"(",
+                                round(sd.res.fdp.g.ebp[i,ind[x,1],ind[x,2],ind[x,3],1], 4),")",sep=""),
+                          paste(round(res.fdp.aic[i,ind[x,1],ind[x,2],ind[x,3],1], 4),"(",
+                                round(sd.res.fdp.aic[i,ind[x,1],ind[x,2],ind[x,3],1], 4),")",sep=""),
+                          paste(round(res.fdp.true[i,ind[x,1],ind[x,2],ind[x,3],1], 4),"(",
+                                round(sd.res.fdp.true[i,ind[x,1],ind[x,2],ind[x,3],1], 4),")",sep = "")
+)}
+
+
+fdp.out <- laply(1:dim(ind)[1], function(x)fdp(x))
+
+dimnames(fdp.out) = 
+  list(c("(1,1,1)", 
+         "(2,1,1)",
+         "(1,2,1)",
+         "(2,2,1)",
+         "(1,1,2)",
+         "(2,1,2)",
+         "(1,2,2)",
+         "(2,2,2)")
+       , 
+       c("nocov", 
+         "cov", 
+         "ebp", 
+         "g.ebp", 
+         "aic", 
+         "true"))
+
+print(xtable(fdp.out, caption = "Control FDR at level 0.01"), floating = FALSE)
+
+
+@
+
+
+
+<<fdp02_5, echo = FALSE, results = 'asis'>>=
+
+
+fdp <-function(x) {c(     paste(round(res.fdp.nocov[i,ind[x,1],ind[x,2],ind[x,3],2], 4),"(",
+                                round(sd.res.fdp.nocov[i,ind[x,1],ind[x,2],ind[x,3],2], 4),")", sep = ""),
+                          
+                          paste(round(res.fdp.cov[i,ind[x,1],ind[x,2],ind[x,3],2], 4),"(",
+                                round(sd.res.fdp.cov[i,ind[x,1],ind[x,2],ind[x,3],2], 4),")",sep =""),
+                          paste(round(res.fdp.ebp[i,ind[x,1],ind[x,2],ind[x,3],2], 4),"(",
+                                round(sd.res.fdp.ebp[i,ind[x,1],ind[x,2],ind[x,3],2], 4),")",sep = ""),
+                          paste(round(res.fdp.g.ebp[i,ind[x,1],ind[x,2],ind[x,3],2], 4),"(",
+                                round(sd.res.fdp.g.ebp[i,ind[x,1],ind[x,2],ind[x,3],2], 4),")",sep=""),
+                          paste(round(res.fdp.aic[i,ind[x,1],ind[x,2],ind[x,3],2], 4),"(",
+                                round(sd.res.fdp.aic[i,ind[x,1],ind[x,2],ind[x,3],2], 4),")",sep=""),
+                          paste(round(res.fdp.true[i,ind[x,1],ind[x,2],ind[x,3],2], 4),"(",
+                                round(sd.res.fdp.true[i,ind[x,1],ind[x,2],ind[x,3],2], 4),")",sep = "")
+)}
+
+
+fdp.out <- laply(1:dim(ind)[1], function(x)fdp(x))
+
+dimnames(fdp.out) = 
+  list(c("(1,1,1)", 
+         "(2,1,1)",
+         "(1,2,1)",
+         "(2,2,1)",
+         "(1,1,2)",
+         "(2,1,2)",
+         "(1,2,2)",
+         "(2,2,2)")
+       , 
+       c("nocov", 
+         "cov", 
+         "ebp", 
+         "g.ebp", 
+         "aic", 
+         "true"))
+
+print(xtable(fdp.out, caption = "Control FDR at level 0.05"),floating = FALSE)
+
+
+@
+
+
+
+<<fdp02_10, echo = FALSE, results = 'asis'>>=
+
+#FDP = .1
+
+
+fdp <-function(x) {c(     paste(round(res.fdp.nocov[i,ind[x,1],ind[x,2],ind[x,3],3], 4),"(",
+                                round(sd.res.fdp.nocov[i,ind[x,1],ind[x,2],ind[x,3],3], 4),")", sep = ""),
+                          
+                          paste(round(res.fdp.cov[i,ind[x,1],ind[x,2],ind[x,3],3], 4),"(",
+                                round(sd.res.fdp.cov[i,ind[x,1],ind[x,2],ind[x,3],3], 4),")",sep =""),
+                          paste(round(res.fdp.ebp[i,ind[x,1],ind[x,2],ind[x,3],3], 4),"(",
+                                round(sd.res.fdp.ebp[i,ind[x,1],ind[x,2],ind[x,3],3], 4),")",sep = ""),
+                          paste(round(res.fdp.g.ebp[i,ind[x,1],ind[x,2],ind[x,3],3], 4),"(",
+                                round(sd.res.fdp.g.ebp[i,ind[x,1],ind[x,2],ind[x,3],3], 4),")",sep=""),
+                          paste(round(res.fdp.aic[i,ind[x,1],ind[x,2],ind[x,3],3], 4),"(",
+                                round(sd.res.fdp.aic[i,ind[x,1],ind[x,2],ind[x,3],3], 4),")",sep=""),
+                          paste(round(res.fdp.true[i,ind[x,1],ind[x,2],ind[x,3],3], 4),"(",
+                                round(sd.res.fdp.true[i,ind[x,1],ind[x,2],ind[x,3],3], 4),")",sep = "")
+)}
+
+
+
+fdp.out <- laply(1:dim(ind)[1], function(x)fdp(x))
+
+dimnames(fdp.out) = 
+  list(c("(1,1,1)", 
+         "(2,1,1)",
+         "(1,2,1)",
+         "(2,2,1)",
+         "(1,1,2)",
+         "(2,1,2)",
+         "(1,2,2)",
+         "(2,2,2)")
+       , 
+       c("nocov", 
+         "cov", 
+         "ebp", 
+         "g.ebp", 
+         "aic", 
+         "true"))
+
+print(xtable(fdp.out, caption = "Control FDR at level 0.10"),floating = FALSE)
+
+
+@
+
+
+
+<<fdp02_15, echo = FALSE, results = 'asis'>>=
+
+#FDP = .15
+
+# FDR = .15
+
+
+fdp <-function(x) {c(     paste(round(res.fdp.nocov[i,ind[x,1],ind[x,2],ind[x,3],4], 4),"(",
+                                round(sd.res.fdp.nocov[i,ind[x,1],ind[x,2],ind[x,3],4], 4),")", sep = ""),
+                          
+                          paste(round(res.fdp.cov[i,ind[x,1],ind[x,2],ind[x,3],4], 4),"(",
+                                round(sd.res.fdp.cov[i,ind[x,1],ind[x,2],ind[x,3],4], 4),")",sep =""),
+                          paste(round(res.fdp.ebp[i,ind[x,1],ind[x,2],ind[x,3],4], 4),"(",
+                                round(sd.res.fdp.ebp[i,ind[x,1],ind[x,2],ind[x,3],4], 4),")",sep = ""),
+                          paste(round(res.fdp.g.ebp[i,ind[x,1],ind[x,2],ind[x,3],4], 4),"(",
+                                round(sd.res.fdp.g.ebp[i,ind[x,1],ind[x,2],ind[x,3],4], 4),")",sep=""),
+                          paste(round(res.fdp.aic[i,ind[x,1],ind[x,2],ind[x,3],4], 4),"(",
+                                round(sd.res.fdp.aic[i,ind[x,1],ind[x,2],ind[x,3],4], 4),")",sep=""),
+                          paste(round(res.fdp.true[i,ind[x,1],ind[x,2],ind[x,3],4], 4),"(",
+                                round(sd.res.fdp.true[i,ind[x,1],ind[x,2],ind[x,3],4], 4),")",sep = "")
+)}
+
+
+fdp.out <- laply(1:dim(ind)[1], function(x)fdp(x))
+
+dimnames(fdp.out) = 
+  list(c("(1,1,1)", 
+         "(2,1,1)",
+         "(1,2,1)",
+         "(2,2,1)",
+         "(1,1,2)",
+         "(2,1,2)",
+         "(1,2,2)",
+         "(2,2,2)")
+       , 
+       c("nocov", 
+         "cov", 
+         "ebp", 
+         "g.ebp", 
+         "aic", 
+         "true"))
+
+print(xtable(fdp.out, caption = "Control FDR at level 0.15"),floating = FALSE)
+
+
+@
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%
+\section{$p.beta = 0$}
+The simulation of count data is without offset.
+
+$j: i.beta(0.1,0.5)$ , $k: S(1.25, 2)$, $l: L(.25, .5),U(.75, 1)$.
+
+<<loaddata09,echo=FALSE>>=
+setwd("P:/FDR dependence/Model Selection/logoffset_in_simulation_logoffset_in_model_negative_beta_positive_beta_50_50/result/pbeta_0")
+i <- 1
+
+
+ind <- expand.grid(j = c(1,2), k = c(1,2), l = c(1,2))
+
+
+#load(file = paste(getwd(), "/sim1.RData", sep = ""))
+load(file = paste(getwd(), "/res.auc.nocov.RData", sep = ""))
+load(file = paste(getwd(), "/res.auc.cov.RData", sep = ""))
+load(file = paste(getwd(), "/res.auc.ebp.RData", sep = ""))
+load(file = paste(getwd(), "/res.auc.g.ebp.RData", sep = ""))
+load(file = paste(getwd(), "/res.auc.aic.RData", sep = ""))
+load(file = paste(getwd(), "/res.auc.true.RData", sep = ""))
+load(file = paste(getwd(), "/res.auc.aebp.RData", sep = ""))
+load(file = paste(getwd(), "/res.auc.g.aebp.RData", sep = ""))
+
+load(file = paste(getwd(), "/res.fdp.nocov.RData", sep = ""))
+load(file = paste(getwd(), "/res.fdp.cov.RData", sep = ""))
+load(file = paste(getwd(), "/res.fdp.ebp.RData", sep = ""))
+load(file = paste(getwd(), "/res.fdp.g.ebp.RData", sep = ""))
+load(file = paste(getwd(), "/res.fdp.aic.RData", sep = ""))
+load(file = paste(getwd(), "/res.fdp.true.RData", sep = ""))
+
+load(file = paste(getwd(), "/sd.res.auc.nocov.RData", sep = ""))
+load(file = paste(getwd(), "/sd.res.auc.cov.RData", sep = ""))
+load(file = paste(getwd(), "/sd.res.auc.ebp.RData", sep = ""))
+load(file = paste(getwd(), "/sd.res.auc.g.ebp.RData", sep = ""))
+load(file = paste(getwd(), "/sd.res.auc.aic.RData", sep = ""))
+load(file = paste(getwd(), "/sd.res.auc.true.RData", sep = ""))
+load(file = paste(getwd(), "/sd.res.auc.aebp.RData", sep = ""))
+load(file = paste(getwd(), "/sd.res.auc.g.aebp.RData", sep = ""))
+
+
+
+load(file = paste(getwd(), "/sd.res.fdp.nocov.RData", sep = ""))
+load(file = paste(getwd(), "/sd.res.fdp.cov.RData", sep = ""))
+load(file = paste(getwd(), "/sd.res.fdp.ebp.RData", sep = ""))
+load(file = paste(getwd(), "/sd.res.fdp.g.ebp.RData", sep = ""))
+load(file = paste(getwd(), "/sd.res.fdp.aic.RData", sep = ""))
+load(file = paste(getwd(), "/sd.res.fdp.true.RData", sep = ""))
+
+@
+
+<<auc09, echo = FALSE, results = 'asis'>>=
+
+auc <-function(x) {c(     paste(round(res.auc.nocov[i,ind[x,1],ind[x,2],ind[x,3]], 4),"(",
+                round(sd.res.auc.nocov[i,ind[x,1],ind[x,2],ind[x,3]], 4),")", sep = ""),
+              
+                paste(round(res.auc.cov[i,ind[x,1],ind[x,2],ind[x,3]], 4),"(",
+                round(sd.res.auc.cov[i,ind[x,1],ind[x,2],ind[x,3]], 4),")",sep =""),
+                paste(round(res.auc.ebp[i,ind[x,1],ind[x,2],ind[x,3]], 4),"(",
+                round(sd.res.auc.ebp[i,ind[x,1],ind[x,2],ind[x,3]], 4),")",sep = ""),
+                paste(round(res.auc.g.ebp[i,ind[x,1],ind[x,2],ind[x,3]], 4),"(",
+                round(sd.res.auc.g.ebp[i,ind[x,1],ind[x,2],ind[x,3]], 4),")",sep=""),
+                paste(round(res.auc.aic[i,ind[x,1],ind[x,2],ind[x,3]], 4),"(",
+                round(sd.res.auc.aic[i,ind[x,1],ind[x,2],ind[x,3]], 4),")",sep=""),
+                paste(round(res.auc.true[i,ind[x,1],ind[x,2],ind[x,3]], 4),"(",
+                round(sd.res.auc.true[i,ind[x,1],ind[x,2],ind[x,3]], 4),")",sep = ""),
+                paste(round(res.auc.aebp[i,ind[x,1],ind[x,2],ind[x,3]], 4),"(",
+                round(sd.res.auc.aebp[i,ind[x,1],ind[x,2],ind[x,3]], 4),")",sep=""),
+                paste(round(res.auc.g.aebp[i,ind[x,1],ind[x,2],ind[x,3]], 4),"(",
+                round(sd.res.auc.g.aebp[i,ind[x,1],ind[x,2],ind[x,3]], 4),")",sep="")
+)}
+
+auc.out <- laply(1:dim(ind)[1], function(x)auc(x))
+
+dimnames(auc.out) = 
+  list(c("(1,1,1)", 
+         "(2,1,1)",
+         "(1,2,1)",
+         "(2,2,1)",
+         "(1,1,2)",
+         "(2,1,2)",
+         "(1,2,2)",
+         "(2,2,2)")
+       , 
+       c("nocov", 
+         "cov", 
+         "ebp", 
+         "g.ebp", 
+         "aic", 
+         "true", 
+         "aepb", 
+         "g.aebp"))
+
+
+print(xtable(auc.out, caption = "AUC"),floating = FALSE)
+@
+
+
+<<fdp09_1, echo = FALSE, results = 'asis'>>=
+
+
+fdp <-function(x) {c(     paste(round(res.fdp.nocov[i,ind[x,1],ind[x,2],ind[x,3],1], 4),"(",
+                                round(sd.res.fdp.nocov[i,ind[x,1],ind[x,2],ind[x,3],1], 4),")", sep = ""),
+                          
+                          paste(round(res.fdp.cov[i,ind[x,1],ind[x,2],ind[x,3],1], 4),"(",
+                                round(sd.res.fdp.cov[i,ind[x,1],ind[x,2],ind[x,3],1], 4),")",sep =""),
+                          paste(round(res.fdp.ebp[i,ind[x,1],ind[x,2],ind[x,3],1], 4),"(",
+                                round(sd.res.fdp.ebp[i,ind[x,1],ind[x,2],ind[x,3],1], 4),")",sep = ""),
+                          paste(round(res.fdp.g.ebp[i,ind[x,1],ind[x,2],ind[x,3],1], 4),"(",
+                                round(sd.res.fdp.g.ebp[i,ind[x,1],ind[x,2],ind[x,3],1], 4),")",sep=""),
+                          paste(round(res.fdp.aic[i,ind[x,1],ind[x,2],ind[x,3],1], 4),"(",
+                                round(sd.res.fdp.aic[i,ind[x,1],ind[x,2],ind[x,3],1], 4),")",sep=""),
+                          paste(round(res.fdp.true[i,ind[x,1],ind[x,2],ind[x,3],1], 4),"(",
+                                round(sd.res.fdp.true[i,ind[x,1],ind[x,2],ind[x,3],1], 4),")",sep = "")
+)}
+
+
+fdp.out <- laply(1:dim(ind)[1], function(x)fdp(x))
+
+dimnames(fdp.out) = 
+  list(c("(1,1,1)", 
+         "(2,1,1)",
+         "(1,2,1)",
+         "(2,2,1)",
+         "(1,1,2)",
+         "(2,1,2)",
+         "(1,2,2)",
+         "(2,2,2)")
+       , 
+       c("nocov", 
+         "cov", 
+         "ebp", 
+         "g.ebp", 
+         "aic", 
+         "true"))
+
+print(xtable(fdp.out, caption = "Control FDR at level 0.01"), floating = FALSE)
+
+
+@
+
+
+
+<<fdp09_5, echo = FALSE, results = 'asis'>>=
+
+
+fdp <-function(x) {c(     paste(round(res.fdp.nocov[i,ind[x,1],ind[x,2],ind[x,3],2], 4),"(",
+                                round(sd.res.fdp.nocov[i,ind[x,1],ind[x,2],ind[x,3],2], 4),")", sep = ""),
+                          
+                          paste(round(res.fdp.cov[i,ind[x,1],ind[x,2],ind[x,3],2], 4),"(",
+                                round(sd.res.fdp.cov[i,ind[x,1],ind[x,2],ind[x,3],2], 4),")",sep =""),
+                          paste(round(res.fdp.ebp[i,ind[x,1],ind[x,2],ind[x,3],2], 4),"(",
+                                round(sd.res.fdp.ebp[i,ind[x,1],ind[x,2],ind[x,3],2], 4),")",sep = ""),
+                          paste(round(res.fdp.g.ebp[i,ind[x,1],ind[x,2],ind[x,3],2], 4),"(",
+                                round(sd.res.fdp.g.ebp[i,ind[x,1],ind[x,2],ind[x,3],2], 4),")",sep=""),
+                          paste(round(res.fdp.aic[i,ind[x,1],ind[x,2],ind[x,3],2], 4),"(",
+                                round(sd.res.fdp.aic[i,ind[x,1],ind[x,2],ind[x,3],2], 4),")",sep=""),
+                          paste(round(res.fdp.true[i,ind[x,1],ind[x,2],ind[x,3],2], 4),"(",
+                                round(sd.res.fdp.true[i,ind[x,1],ind[x,2],ind[x,3],2], 4),")",sep = "")
+)}
+
+
+fdp.out <- laply(1:dim(ind)[1], function(x)fdp(x))
+
+dimnames(fdp.out) = 
+  list(c("(1,1,1)", 
+         "(2,1,1)",
+         "(1,2,1)",
+         "(2,2,1)",
+         "(1,1,2)",
+         "(2,1,2)",
+         "(1,2,2)",
+         "(2,2,2)")
+       , 
+       c("nocov", 
+         "cov", 
+         "ebp", 
+         "g.ebp", 
+         "aic", 
+         "true"))
+
+print(xtable(fdp.out, caption = "Control FDR at level 0.05"),floating = FALSE)
+
+
+@
+
+
+
+<<fdp09_10, echo = FALSE, results = 'asis'>>=
+
+#FDP = .1
+
+
+fdp <-function(x) {c(     paste(round(res.fdp.nocov[i,ind[x,1],ind[x,2],ind[x,3],3], 4),"(",
+                                round(sd.res.fdp.nocov[i,ind[x,1],ind[x,2],ind[x,3],3], 4),")", sep = ""),
+                          
+                          paste(round(res.fdp.cov[i,ind[x,1],ind[x,2],ind[x,3],3], 4),"(",
+                                round(sd.res.fdp.cov[i,ind[x,1],ind[x,2],ind[x,3],3], 4),")",sep =""),
+                          paste(round(res.fdp.ebp[i,ind[x,1],ind[x,2],ind[x,3],3], 4),"(",
+                                round(sd.res.fdp.ebp[i,ind[x,1],ind[x,2],ind[x,3],3], 4),")",sep = ""),
+                          paste(round(res.fdp.g.ebp[i,ind[x,1],ind[x,2],ind[x,3],3], 4),"(",
+                                round(sd.res.fdp.g.ebp[i,ind[x,1],ind[x,2],ind[x,3],3], 4),")",sep=""),
+                          paste(round(res.fdp.aic[i,ind[x,1],ind[x,2],ind[x,3],3], 4),"(",
+                                round(sd.res.fdp.aic[i,ind[x,1],ind[x,2],ind[x,3],3], 4),")",sep=""),
+                          paste(round(res.fdp.true[i,ind[x,1],ind[x,2],ind[x,3],3], 4),"(",
+                                round(sd.res.fdp.true[i,ind[x,1],ind[x,2],ind[x,3],3], 4),")",sep = "")
+)}
+
+
+
+fdp.out <- laply(1:dim(ind)[1], function(x)fdp(x))
+
+dimnames(fdp.out) = 
+  list(c("(1,1,1)", 
+         "(2,1,1)",
+         "(1,2,1)",
+         "(2,2,1)",
+         "(1,1,2)",
+         "(2,1,2)",
+         "(1,2,2)",
+         "(2,2,2)")
+       , 
+       c("nocov", 
+         "cov", 
+         "ebp", 
+         "g.ebp", 
+         "aic", 
+         "true"))
+
+print(xtable(fdp.out, caption = "Control FDR at level 0.10"),floating = FALSE)
+
+
+@
+
+
+
+<<fdp09_15, echo = FALSE, results = 'asis'>>=
+
+#FDP = .15
+
+# FDR = .15
+
+
+fdp <-function(x) {c(     paste(round(res.fdp.nocov[i,ind[x,1],ind[x,2],ind[x,3],4], 4),"(",
+                                round(sd.res.fdp.nocov[i,ind[x,1],ind[x,2],ind[x,3],4], 4),")", sep = ""),
+                          
+                          paste(round(res.fdp.cov[i,ind[x,1],ind[x,2],ind[x,3],4], 4),"(",
+                                round(sd.res.fdp.cov[i,ind[x,1],ind[x,2],ind[x,3],4], 4),")",sep =""),
+                          paste(round(res.fdp.ebp[i,ind[x,1],ind[x,2],ind[x,3],4], 4),"(",
+                                round(sd.res.fdp.ebp[i,ind[x,1],ind[x,2],ind[x,3],4], 4),")",sep = ""),
+                          paste(round(res.fdp.g.ebp[i,ind[x,1],ind[x,2],ind[x,3],4], 4),"(",
+                                round(sd.res.fdp.g.ebp[i,ind[x,1],ind[x,2],ind[x,3],4], 4),")",sep=""),
+                          paste(round(res.fdp.aic[i,ind[x,1],ind[x,2],ind[x,3],4], 4),"(",
+                                round(sd.res.fdp.aic[i,ind[x,1],ind[x,2],ind[x,3],4], 4),")",sep=""),
+                          paste(round(res.fdp.true[i,ind[x,1],ind[x,2],ind[x,3],4], 4),"(",
+                                round(sd.res.fdp.true[i,ind[x,1],ind[x,2],ind[x,3],4], 4),")",sep = "")
+)}
+
+
+fdp.out <- laply(1:dim(ind)[1], function(x)fdp(x))
+
+dimnames(fdp.out) = 
+  list(c("(1,1,1)", 
+         "(2,1,1)",
+         "(1,2,1)",
+         "(2,2,1)",
+         "(1,1,2)",
+         "(2,1,2)",
+         "(1,2,2)",
+         "(2,2,2)")
+       , 
+       c("nocov", 
+         "cov", 
+         "ebp", 
+         "g.ebp", 
+         "aic", 
+         "true"))
+
+print(xtable(fdp.out, caption = "Control FDR at level 0.15"),floating = FALSE)
+
+
+
+@
+
+
+\end{document}
