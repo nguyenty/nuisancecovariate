@@ -10,11 +10,12 @@ p.beta <- 0.75
 i.beta <- c(0.1, 1)
 e.beta <- c(0.5, 1.5)
 n.sim <- 100
-mainDir <- "/home/ntyet/research/nuisancecovariate" # linux server
-mainDir1 <- paste("/home/ntyet/research/nuisancecovariate/K_", K, sep = "")  # linux server
+# mainDir <- "/home/ntyet/research/nuisancecovariate" # linux server
+# mainDir1 <- paste("/home/ntyet/research/nuisancecovariate/K_", K, sep = "")  # linux server
+
+mainDir <- "/run/user/1000/gvfs/smb-share:server=smb.stat.iastate.edu,share=ntyet/research/nuisancecovariate" # Linux laptop
+mainDir1 <- paste("/run/user/1000/gvfs/smb-share:server=smb.stat.iastate.edu,share=ntyet/research/nuisancecovariate/K_", K,sep = "")  # linux server
 dir.create(mainDir1, showWarnings = FALSE)
-#mainDir <- "/run/user/1000/gvfs/smb-share:server=smb.stat.iastate.edu,share=ntyet/research/nuisancecovariate" # Linux laptop
-#mainDir1 <- paste("/run/user/1000/gvfs/smb-share:server=smb.stat.iastate.edu,share=ntyet/research/nuisancecovariate/K_", K,sep = "")  # linux server
 pbeta1 <- "pbeta_0.75"
 dir.create(file.path(mainDir1, pbeta1), showWarnings = FALSE)
 sources <- "sources"
@@ -240,7 +241,8 @@ sim_counts <- function(p.beta, i.beta, e.beta, S, L, U){
 # need to modify the sim_QLfit function to obtain pvalue from two different groups after classification
 
 sim_QLfit <- function(p.beta, i.beta, e.beta, S, L, U){
-  
+  fdpp <- NULL
+  for(i in 1:20){
   sim.data <- sim_counts(p.beta, i.beta, e.beta, S, L, U)
   counts <- sim.data$counts
   beta.ind <- sim.data$beta.ind
@@ -249,7 +251,8 @@ sim_QLfit <- function(p.beta, i.beta, e.beta, S, L, U){
   design.list <- vector("list",2)
   design.list[[1]] <- rep(1:2, each = K)
   design.list[[2]] <- rep(1, ncol(counts))
-  fit <- QL.fit(counts, design.list, 
+  size <- apply(counts, 2, quantile, 0.75)
+  fit <- QL.fit(counts, design.list, log.offset = log(size),
                 Model = "NegBin",
                 print.progress=FALSE)
   
@@ -266,7 +269,7 @@ sim_QLfit <- function(p.beta, i.beta, e.beta, S, L, U){
   test.mat <- rbind(1:2, c(1,3))
   row.names(test.mat) <- c("Covariate", "Treatment")
   fit.2 <- QL.fit(counts, design.list, 
-                  test.mat,
+                  test.mat,log.offset = log(size),
                   Model="NegBin", 
                   print.progress=FALSE)
   
@@ -284,8 +287,9 @@ sim_QLfit <- function(p.beta, i.beta, e.beta, S, L, U){
   
   ebp_cov <- laply(1:J, function(j)
     ifelse(ebp.cov$h.ebp[j] < .5,  1, 0))
-  sum(abs(beta.ind)*ebp_cov)
-  sum(ebp_cov)
+#   sum(abs(beta.ind)*ebp_cov)
+#   sum(ebp_cov)
+## code to fit QL.fit for each set of genes (cov and nocov)
   design.list <- vector("list", 3)
   x1 <- as.factor(rep(1:2, each = K))
   design.list[[1]] <- model.matrix(~ x1 + c(x[1,],x[2,]))
@@ -293,18 +297,48 @@ sim_QLfit <- function(p.beta, i.beta, e.beta, S, L, U){
   design.list[[3]] <- model.matrix(~ c(x[1,],x[2,])) # test for treatment effect
   test.mat <- rbind(1:2, c(1,3))
   row.names(test.mat) <- c("Covariate", "Treatment")
+  size <- apply(counts[ebp_cov ==1, ], 2, quantile, 0.75)
   fit_ebp_cov <- QL.fit(counts[ebp_cov ==1, ], design.list, 
-                  test.mat,
+                  test.mat,log.offset = log(size),
                   Model="NegBin", 
                   print.progress=FALSE)
   
   result_ebp_cov <- QL.results(fit_ebp_cov,Plot= FALSE)
-  
-  pvalue.trt.cov <- result_ebp_cov$P.values[[3]][,1]
-  pvalue.trt.cov <- result_ebp_cov$P.values[[3]][,2]
-  
 
-  pvalue.trt.g.ebp <- laply(1:J, function(j)
+#  str(result_ebp_cov)
+  pvalue.trt.cov <- result_ebp_cov$P.values[[3]][,"Treatment"]
+#  pvalue.trt.cov <- result_ebp_cov$P.values[[3]][,2]
+
+design.list <- vector("list", 2)
+#x1 <- as.factor(rep(1:2, each = K))
+design.list[[1]] <- model.matrix(~ x1)
+design.list[[2]] <- rep(1, ncol(counts)) # test for covariate
+size <- apply(counts[ebp_cov ==0, ], 2, quantile, 0.75)
+fit_ebp_nocov <- QL.fit(counts[ebp_cov ==0, ], design.list, 
+                        log.offset = log(size),
+                      Model="NegBin", 
+                      print.progress=FALSE)
+
+result_ebp_nocov <- QL.results(fit_ebp_nocov,Plot= FALSE)
+
+#str(result_ebp_nocov)
+pvalue.trt.nocov <- result_ebp_nocov$P.values[[3]][,1]
+# hist(pvalue.trt.nocov, nclass = 100)
+# hist(pvalue.trt.cov, nclass = 100)
+# str(sim.data)
+# str(sim.data$tau)
+# which(sim.data$tau[1,] - sim.data$tau[2, ] != 0)
+# which(ebp_cov==1)
+pvalue.trt.ebp <- rep(0, J)
+pvalue.trt.ebp[which(ebp_cov==1)] <- pvalue.trt.cov
+pvalue.trt.ebp[which(ebp_cov==0)] <- pvalue.trt.nocov
+hist(pvalue.trt.ebp, nclass = 30)
+Rt <- which(jabes.q(pvalue.trt.ebp, B = 20)<=0.05)
+Vt <- sum(Rt >200)
+fdpp[i] <- Vt/length(Rt)
+}
+mean(fdpp)
+pvalue.trt.g.ebp <- laply(1:J, function(j)
     ifelse(g.ebp.cov$h.ebp[j] < .5,  pvalue.trt.cov[j], pvalue.trt.nocov[j]))
   
   pvalue.trt.aic <- laply(1:J, function(j)
