@@ -13,8 +13,11 @@ n.sim <- 100
 # mainDir <- "/home/ntyet/research/nuisancecovariate" # linux server
 # mainDir1 <- paste("/home/ntyet/research/nuisancecovariate/K_", K, sep = "")  # linux server
 
-mainDir <- "/run/user/1000/gvfs/smb-share:server=smb.stat.iastate.edu,share=ntyet/research/nuisancecovariate" # Linux laptop
-mainDir1 <- paste("/run/user/1000/gvfs/smb-share:server=smb.stat.iastate.edu,share=ntyet/research/nuisancecovariate/K_", K,sep = "")  # linux server
+# mainDir <- "/run/user/1000/gvfs/smb-share:server=smb.stat.iastate.edu,share=ntyet/research/nuisancecovariate" # Linux laptop
+# mainDir1 <- paste("/run/user/1000/gvfs/smb-share:server=smb.stat.iastate.edu,share=ntyet/research/nuisancecovariate/K_", K,sep = "")  # linux server
+mainDir <- "P:/research/nuisancecovariate" # Linux laptop
+mainDir1 <- paste("P:/research/nuisancecovariate/K_", K,sep = "")  # linux server
+
 dir.create(mainDir1, showWarnings = FALSE)
 pbeta1 <- "pbeta_0.75"
 dir.create(file.path(mainDir1, pbeta1), showWarnings = FALSE)
@@ -242,7 +245,7 @@ sim_counts <- function(p.beta, i.beta, e.beta, S, L, U){
 
 sim_QLfit <- function(p.beta, i.beta, e.beta, S, L, U){
   fdpp <- NULL
-  for(i in 1:20){
+  for(i in 1:100){
   sim.data <- sim_counts(p.beta, i.beta, e.beta, S, L, U)
   counts <- sim.data$counts
   beta.ind <- sim.data$beta.ind
@@ -252,7 +255,7 @@ sim_QLfit <- function(p.beta, i.beta, e.beta, S, L, U){
   design.list[[1]] <- rep(1:2, each = K)
   design.list[[2]] <- rep(1, ncol(counts))
   size <- apply(counts, 2, quantile, 0.75)
-  fit <- QL.fit(counts, design.list, log.offset = log(size),
+  fit <- QL.fit(counts, design.list, 
                 Model = "NegBin",
                 print.progress=FALSE)
   
@@ -269,7 +272,7 @@ sim_QLfit <- function(p.beta, i.beta, e.beta, S, L, U){
   test.mat <- rbind(1:2, c(1,3))
   row.names(test.mat) <- c("Covariate", "Treatment")
   fit.2 <- QL.fit(counts, design.list, 
-                  test.mat,log.offset = log(size),
+                  test.mat,
                   Model="NegBin", 
                   print.progress=FALSE)
   
@@ -299,7 +302,7 @@ sim_QLfit <- function(p.beta, i.beta, e.beta, S, L, U){
   row.names(test.mat) <- c("Covariate", "Treatment")
   size <- apply(counts[ebp_cov ==1, ], 2, quantile, 0.75)
   fit_ebp_cov <- QL.fit(counts[ebp_cov ==1, ], design.list, 
-                  test.mat,log.offset = log(size),
+                  test.mat,
                   Model="NegBin", 
                   print.progress=FALSE)
   
@@ -315,7 +318,7 @@ design.list[[1]] <- model.matrix(~ x1)
 design.list[[2]] <- rep(1, ncol(counts)) # test for covariate
 size <- apply(counts[ebp_cov ==0, ], 2, quantile, 0.75)
 fit_ebp_nocov <- QL.fit(counts[ebp_cov ==0, ], design.list, 
-                        log.offset = log(size),
+                        
                       Model="NegBin", 
                       print.progress=FALSE)
 
@@ -336,6 +339,7 @@ hist(pvalue.trt.ebp, nclass = 30)
 Rt <- which(jabes.q(pvalue.trt.ebp, B = 20)<=0.05)
 Vt <- sum(Rt >200)
 fdpp[i] <- Vt/length(Rt)
+  print(i)
 }
 mean(fdpp)
 pvalue.trt.g.ebp <- laply(1:J, function(j)
