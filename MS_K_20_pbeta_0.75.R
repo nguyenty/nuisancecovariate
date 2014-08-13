@@ -1,4 +1,4 @@
-library("edgeR");library("plyr");library("fdrtool");library("AUC"); library("maps") ;library("fields")
+Glibrary("edgeR");library("plyr");library("fdrtool");library("AUC"); library("maps") ;library("fields")
 I <- 2; J <- 1000
 K <- 20
 DE <- round(J*.2)
@@ -245,6 +245,7 @@ sim_counts <- function(p.beta, i.beta, e.beta, S, L, U){
 
 sim_QLfit <- function(p.beta, i.beta, e.beta, S, L, U){
   fdpp <- NULL
+  ptm <- proc.time()
   for(i in 1:100){
   sim.data <- sim_counts(p.beta, i.beta, e.beta, S, L, U)
   counts <- sim.data$counts
@@ -335,13 +336,14 @@ pvalue.trt.nocov <- result_ebp_nocov$P.values[[3]][,1]
 pvalue.trt.ebp <- rep(0, J)
 pvalue.trt.ebp[which(ebp_cov==1)] <- pvalue.trt.cov
 pvalue.trt.ebp[which(ebp_cov==0)] <- pvalue.trt.nocov
-hist(pvalue.trt.ebp, nclass = 30)
+#hist(pvalue.trt.ebp, nclass = 30)
 Rt <- which(jabes.q(pvalue.trt.ebp, B = 20)<=0.05)
 Vt <- sum(Rt >200)
 fdpp[i] <- Vt/length(Rt)
   print(i)
 }
 mean(fdpp)
+  proc.time() - ptm
 pvalue.trt.g.ebp <- laply(1:J, function(j)
     ifelse(g.ebp.cov$h.ebp[j] < .5,  pvalue.trt.cov[j], pvalue.trt.nocov[j]))
   
