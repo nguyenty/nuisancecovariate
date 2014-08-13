@@ -1,4 +1,4 @@
-Glibrary("edgeR");library("plyr");library("fdrtool");library("AUC"); library("maps") ;library("fields")
+library("edgeR");library("plyr");library("fdrtool");library("AUC"); library("maps") ;library("fields")
 I <- 2; J <- 1000
 K <- 20
 DE <- round(J*.2)
@@ -244,9 +244,6 @@ sim_counts <- function(p.beta, i.beta, e.beta, S, L, U){
 # need to modify the sim_QLfit function to obtain pvalue from two different groups after classification
 
 sim_QLfit <- function(p.beta, i.beta, e.beta, S, L, U){
-  fdpp <- NULL
-  ptm <- proc.time()
-  for(i in 1:100){
   sim.data <- sim_counts(p.beta, i.beta, e.beta, S, L, U)
   counts <- sim.data$counts
   beta.ind <- sim.data$beta.ind
@@ -291,8 +288,6 @@ sim_QLfit <- function(p.beta, i.beta, e.beta, S, L, U){
   
   ebp_cov <- laply(1:J, function(j)
     ifelse(ebp.cov$h.ebp[j] < .5,  1, 0))
-#   sum(abs(beta.ind)*ebp_cov)
-#   sum(ebp_cov)
 ## code to fit QL.fit for each set of genes (cov and nocov)
   design.list <- vector("list", 3)
   x1 <- as.factor(rep(1:2, each = K))
@@ -308,48 +303,101 @@ sim_QLfit <- function(p.beta, i.beta, e.beta, S, L, U){
                   print.progress=FALSE)
   
   result_ebp_cov <- QL.results(fit_ebp_cov,Plot= FALSE)
-
-#  str(result_ebp_cov)
-  pvalue.trt.cov <- result_ebp_cov$P.values[[3]][,"Treatment"]
-#  pvalue.trt.cov <- result_ebp_cov$P.values[[3]][,2]
-
-design.list <- vector("list", 2)
+  pvalue.trt.cov_ebp <- result_ebp_cov$P.values[[3]][,"Treatment"]
+  design.list <- vector("list", 2)
 #x1 <- as.factor(rep(1:2, each = K))
-design.list[[1]] <- model.matrix(~ x1)
-design.list[[2]] <- rep(1, ncol(counts)) # test for covariate
-size <- apply(counts[ebp_cov ==0, ], 2, quantile, 0.75)
-fit_ebp_nocov <- QL.fit(counts[ebp_cov ==0, ], design.list, 
+  design.list[[1]] <- model.matrix(~ x1)
+  design.list[[2]] <- rep(1, ncol(counts)) # test for covariate
+  size <- apply(counts[ebp_cov ==0, ], 2, quantile, 0.75)
+  fit_ebp_nocov <- QL.fit(counts[ebp_cov ==0, ], design.list, 
                         
                       Model="NegBin", 
                       print.progress=FALSE)
 
-result_ebp_nocov <- QL.results(fit_ebp_nocov,Plot= FALSE)
+  result_ebp_nocov <- QL.results(fit_ebp_nocov,Plot= FALSE)
 
-#str(result_ebp_nocov)
-pvalue.trt.nocov <- result_ebp_nocov$P.values[[3]][,1]
-# hist(pvalue.trt.nocov, nclass = 100)
-# hist(pvalue.trt.cov, nclass = 100)
-# str(sim.data)
-# str(sim.data$tau)
-# which(sim.data$tau[1,] - sim.data$tau[2, ] != 0)
-# which(ebp_cov==1)
+pvalue.trt.nocov_ebp <- result_ebp_nocov$P.values[[3]][,1]
 pvalue.trt.ebp <- rep(0, J)
-pvalue.trt.ebp[which(ebp_cov==1)] <- pvalue.trt.cov
-pvalue.trt.ebp[which(ebp_cov==0)] <- pvalue.trt.nocov
-#hist(pvalue.trt.ebp, nclass = 30)
-Rt <- which(jabes.q(pvalue.trt.ebp, B = 20)<=0.05)
-Vt <- sum(Rt >200)
-fdpp[i] <- Vt/length(Rt)
-  print(i)
-}
-mean(fdpp)
-  proc.time() - ptm
-pvalue.trt.g.ebp <- laply(1:J, function(j)
-    ifelse(g.ebp.cov$h.ebp[j] < .5,  pvalue.trt.cov[j], pvalue.trt.nocov[j]))
+pvalue.trt.ebp[which(ebp_cov==1)] <- pvalue.trt.cov_ebp
+pvalue.trt.ebp[which(ebp_cov==0)] <- pvalue.trt.nocov_ebp
+
+
+# gene classification when using grenander estimator
+
+
+gebp_cov <- laply(1:J, function(j)
+  ifelse(g.ebp.cov$h.ebp[j] < .5,  1, 0))
+## code to fit QL.fit for each set of genes (cov and nocov)
+design.list <- vector("list", 3)
+x1 <- as.factor(rep(1:2, each = K))
+design.list[[1]] <- model.matrix(~ x1 + c(x[1,],x[2,]))
+design.list[[2]] <- model.matrix(~ x1) # test for covariate
+design.list[[3]] <- model.matrix(~ c(x[1,],x[2,])) # test for treatment effect
+test.mat <- rbind(1:2, c(1,3))
+row.names(test.mat) <- c("Covariate", "Treatment")
+#size <- apply(counts[gebp_cov ==1, ], 2, quantile, 0.75)
+fit_gebp_cov <- QL.fit(counts[gebp_cov ==1, ], design.list, 
+                      test.mat,
+                      Model="NegBin", 
+                      print.progress=FALSE)
+
+result_gebp_cov <- QL.results(fit_gebp_cov,Plot= FALSE)
+pvalue.trt.cov_gebp <- result_gebp_cov$P.values[[3]][,"Treatment"]
+
+design.list <- vector("list", 2)
+design.list[[1]] <- model.matrix(~ x1)
+design.list[[2]] <- rep(1, ncol(counts)) # test for covariate
+size <- apply(counts[ebp_cov ==0, ], 2, quantile, 0.75)
+fit_gebp_nocov <- QL.fit(counts[gebp_cov ==0, ], design.list, 
+                        Model="NegBin", 
+                        print.progress=FALSE)
+
+result_gebp_nocov <- QL.results(fit_gebp_nocov,Plot= FALSE)
+
+pvalue.trt.nocov_gebp <- result_gebp_nocov$P.values[[3]][,1]
+pvalue.trt.g.ebp <- rep(0, J)
+pvalue.trt.g.ebp[which(gebp_cov==1)] <- pvalue.trt.cov_gebp
+pvalue.trt.g.ebp[which(ebp_cov==0)] <- pvalue.trt.nocov_gebp
+
+
+# gene classification when using aic
+
+pvalue.trt.aic <- laply(1:J, function(j)
+  ifelse(aic.nocov[j] > aic.cov[j],  pvalue.trt.cov[j], pvalue.trt.nocov[j]))
+aic_cov <- laply(1:J, function(j)
+  ifelse(aic.nocov[j] > aic.cov[j],  1, 0))
+## code to fit QL.fit for each set of genes (cov and nocov)
+design.list <- vector("list", 3)
+x1 <- as.factor(rep(1:2, each = K))
+design.list[[1]] <- model.matrix(~ x1 + c(x[1,],x[2,]))
+design.list[[2]] <- model.matrix(~ x1) # test for covariate
+design.list[[3]] <- model.matrix(~ c(x[1,],x[2,])) # test for treatment effect
+test.mat <- rbind(1:2, c(1,3))
+row.names(test.mat) <- c("Covariate", "Treatment")
+#size <- apply(counts[aic_cov ==1, ], 2, quantile, 0.75)
+fit_aic_cov <- QL.fit(counts[aic_cov ==1, ], design.list, 
+                       test.mat,
+                       Model="NegBin", 
+                       print.progress=FALSE)
+
+result_aic_cov <- QL.results(fit_aic_cov,Plot= FALSE)
+pvalue.trt.cov_aic <- result_aic_cov$P.values[[3]][,"Treatment"]
+
+design.list <- vector("list", 2)
+design.list[[1]] <- model.matrix(~ x1)
+design.list[[2]] <- rep(1, ncol(counts)) # test for covariate
+size <- apply(counts[ebp_cov ==0, ], 2, quantile, 0.75)
+fit_aic_nocov <- QL.fit(counts[aic_cov ==0, ], design.list, 
+                         Model="NegBin", 
+                         print.progress=FALSE)
+
+result_aic_nocov <- QL.results(fit_aic_nocov,Plot= FALSE)
+
+pvalue.trt.nocov_aic <- result_aic_nocov$P.values[[3]][,1]
+pvalue.trt.aic <- rep(0, J)
+pvalue.trt.aic[which(aic_cov==1)] <- pvalue.trt.cov_aic
+pvalue.trt.aic[which(ebp_cov==0)] <- pvalue.trt.nocov_aic
   
-  pvalue.trt.aic <- laply(1:J, function(j)
-    ifelse(aic.nocov[j] > aic.cov[j],  pvalue.trt.cov[j], pvalue.trt.nocov[j]))
-    
     pvalue.trt.oracle <- laply(1:J, function(j)
       ifelse(beta.ind[j]!=0,  pvalue.trt.cov[j], pvalue.trt.nocov[j]))
   
