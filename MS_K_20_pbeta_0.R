@@ -325,13 +325,18 @@ pvalue.trt.ebp[which(ebp_cov==1)] <- pvalue.trt.cov_ebp
 pvalue.trt.ebp[which(ebp_cov==0)] <- pvalue.trt.nocov_ebp
   }
 
+if ((sum(ebp_cov ==0)== 0)) pvalue.trt.ebp <- pvalue.trt.cov
+  
 
+if ((sum(ebp_cov ==1)== 0)) pvalue.trt.ebp <- pvalue.trt.nocov
 # gene classification when using grenander estimator
 
 
 gebp_cov <- laply(1:J, function(j)
   ifelse(g.ebp.cov$h.ebp[j] < .5,  1, 0))
 ## code to fit QL.fit for each set of genes (cov and nocov)
+if ((sum(gebp_cov ==0)!= 0) & (sum(gebp_cov ==1)!=0))
+{
 design.list <- vector("list", 3)
 x1 <- as.factor(rep(1:2, each = K))
 design.list[[1]] <- model.matrix(~ x1 + c(x[1,],x[2,]))
@@ -362,15 +367,20 @@ pvalue.trt.nocov_gebp <- result_gebp_nocov$P.values[[3]][,1]
 pvalue.trt.g.ebp <- rep(0, J)
 pvalue.trt.g.ebp[which(gebp_cov==1)] <- pvalue.trt.cov_gebp
 pvalue.trt.g.ebp[which(ebp_cov==0)] <- pvalue.trt.nocov_gebp
+}
+
+if ((sum(gebp_cov ==0)== 0)) pvalue.trt.g.ebp <- pvalue.trt.cov
 
 
+if ((sum(gebp_cov ==1)== 0)) pvalue.trt.g.ebp <- pvalue.trt.nocov
 # gene classification when using aic
 
-pvalue.trt.aic <- laply(1:J, function(j)
-  ifelse(aic.nocov[j] > aic.cov[j],  pvalue.trt.cov[j], pvalue.trt.nocov[j]))
+
 aic_cov <- laply(1:J, function(j)
   ifelse(aic.nocov[j] > aic.cov[j],  1, 0))
 ## code to fit QL.fit for each set of genes (cov and nocov)
+if ((sum(aic_cov ==0)!= 0) & (sum(aic_cov ==1)!=0))
+{
 design.list <- vector("list", 3)
 x1 <- as.factor(rep(1:2, each = K))
 design.list[[1]] <- model.matrix(~ x1 + c(x[1,],x[2,]))
@@ -401,7 +411,12 @@ pvalue.trt.nocov_aic <- result_aic_nocov$P.values[[3]][,1]
 pvalue.trt.aic <- rep(0, J)
 pvalue.trt.aic[which(aic_cov==1)] <- pvalue.trt.cov_aic
 pvalue.trt.aic[which(ebp_cov==0)] <- pvalue.trt.nocov_aic
-  
+}
+if ((sum(aic_cov ==0)== 0)) pvalue.trt.aic <- pvalue.trt.cov
+
+
+if ((sum(aic_cov ==1)== 0)) pvalue.trt.aic <- pvalue.trt.nocov
+
     pvalue.trt.oracle <- laply(1:J, function(j)
       ifelse(beta.ind[j]!=0,  pvalue.trt.cov[j], pvalue.trt.nocov[j]))
   
