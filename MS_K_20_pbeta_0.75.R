@@ -10,13 +10,13 @@ p.beta <- 0.75
 i.beta <- c(0.1, 1)
 e.beta <- c(0.5, 1.5)
 n.sim <- 100
-# mainDir <- "/home/ntyet/research/nuisancecovariate" # linux server
-# mainDir1 <- paste("/home/ntyet/research/nuisancecovariate/K_", K, sep = "")  # linux server
+mainDir <- "/home/ntyet/research/nuisancecovariate" # linux server
+mainDir1 <- paste("/home/ntyet/research/nuisancecovariate/K_", K, sep = "")  # linux server
 
 # mainDir <- "/run/user/1000/gvfs/smb-share:server=smb.stat.iastate.edu,share=ntyet/research/nuisancecovariate" # Linux laptop
 # mainDir1 <- paste("/run/user/1000/gvfs/smb-share:server=smb.stat.iastate.edu,share=ntyet/research/nuisancecovariate/K_", K,sep = "")  # linux server
-mainDir <- "P:/research/nuisancecovariate" # Linux laptop
-mainDir1 <- paste("P:/research/nuisancecovariate/K_", K,sep = "")  # linux server
+# mainDir <- "P:/research/nuisancecovariate" # Linux laptop
+# mainDir1 <- paste("P:/research/nuisancecovariate/K_", K,sep = "")  # linux server
 
 dir.create(mainDir1, showWarnings = FALSE)
 pbeta1 <- "pbeta_0.75"
