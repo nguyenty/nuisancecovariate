@@ -1,6 +1,6 @@
 library("edgeR");library("plyr");library("fdrtool");library("AUC"); library("maps") ;library("fields")
 I <- 2; J <- 1000
-K <- 20
+K <- 5
 DE <- round(J*.2)
 EE <- J - DE
 S <- 1.25
@@ -52,7 +52,7 @@ source(paste(dir.source, "/stevescode/QuasiSeq_1.0-2/QuasiSeq/R/QL.results.R",se
 # load(file ="/run/user/1000/gvfs/smb-share:server=cyfiles.iastate.edu,share=09/22/ntyet//R/RA/Data/Additional Plot/Model0.result.line.rfi.RData")
 load(file = paste(dir.source, "/Model0.line.rfi.RData",sep = ""))
 load(file = paste(dir.source,"/Model0.result.line.rfi.RData",sep = ""))
-#str(result.line.rfi)
+str(result.line.rfi)
 # hist(result.line.rfi$P.values[[3]][,"RFI.value"])
 # str(result.line.rfi$P.values[[3]])
 #counts <- as.matrix(dat2[rowSums(dat2>0)>1&
@@ -288,8 +288,6 @@ sim_QLfit <- function(p.beta, i.beta, e.beta, S, L, U){
   
   ebp_cov <- laply(1:J, function(j)
     ifelse(ebp.cov$h.ebp[j] < .5,  1, 0))
-  if ((sum(ebp_cov ==0)!= 0) & (sum(ebp_cov ==1)!=0))
-  {
 ## code to fit QL.fit for each set of genes (cov and nocov)
   design.list <- vector("list", 3)
   x1 <- as.factor(rep(1:2, each = K))
@@ -298,8 +296,7 @@ sim_QLfit <- function(p.beta, i.beta, e.beta, S, L, U){
   design.list[[3]] <- model.matrix(~ c(x[1,],x[2,])) # test for treatment effect
   test.mat <- rbind(1:2, c(1,3))
   row.names(test.mat) <- c("Covariate", "Treatment")
-
-  
+  size <- apply(counts[ebp_cov ==1, ], 2, quantile, 0.75)
   fit_ebp_cov <- QL.fit(counts[ebp_cov ==1, ], design.list, 
                   test.mat,
                   Model="NegBin", 
@@ -323,7 +320,6 @@ pvalue.trt.nocov_ebp <- result_ebp_nocov$P.values[[3]][,1]
 pvalue.trt.ebp <- rep(0, J)
 pvalue.trt.ebp[which(ebp_cov==1)] <- pvalue.trt.cov_ebp
 pvalue.trt.ebp[which(ebp_cov==0)] <- pvalue.trt.nocov_ebp
-  }
 
 
 # gene classification when using grenander estimator
@@ -510,7 +506,7 @@ pvalue.trt.aic[which(ebp_cov==0)] <- pvalue.trt.nocov_aic
 }
 
 
-out_20_0 <- llply(1:length(i.beta), function(j){
+out_5_0 <- llply(1:length(i.beta), function(j){
   out1 <- laply(1:n.sim, function(i){
     sim1 <- sim_QLfit(p.beta, i.beta[j], e.beta[j], S, L, U)
     pathsave <- paste(dir.pbeta1, 
@@ -545,7 +541,7 @@ out_20_0 <- llply(1:length(i.beta), function(j){
   out1
 } )
 
-head(out_20_0[[1]])
-head(out_20_0[[2]])
-save(out_20_0, file = paste(dir.pbeta1, "/out_20_0.RData", sep = ""))
+head(out_5_0[[1]])
+head(out_5_0[[2]])
+save(out_5_0, file = paste(dir.pbeta1, "/out_5_0.RData", sep = ""))
 
