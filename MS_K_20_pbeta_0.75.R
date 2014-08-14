@@ -422,11 +422,6 @@ sim_QLfit <- function(p.beta, i.beta, e.beta, S, L, U){
   
   ## oracle
   
-  pvalue.trt.oracle <- laply(1:J, function(j)
-    ifelse(beta.ind[j]!=0,  pvalue.trt.cov[j], pvalue.trt.nocov[j]))
-  
-  aic_cov <- laply(1:J, function(j)
-    ifelse(aic.nocov[j] > aic.cov[j],  1, 0))
   
   
   ## code to fit QL.fit for each set of genes (cov and nocov)
