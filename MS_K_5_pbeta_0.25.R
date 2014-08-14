@@ -444,7 +444,7 @@ sim_QLfit <- function(p.beta, i.beta, e.beta, S, L, U){
     design.list[[1]] <- model.matrix(~ x1)
     design.list[[2]] <- rep(1, ncol(counts)) # test for covariate
     #size <- apply(counts[ebp_cov ==0, ], 2, quantile, 0.75)
-    fit_oracle_nocov <- QL.fit(counts[oracle_cov ==0, ], design.list, 
+    fit_oracle_nocov <- QL.fit(counts[beta.ind ==0, ], design.list, 
                                Model="NegBin", 
                                print.progress=FALSE)
     
