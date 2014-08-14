@@ -242,7 +242,7 @@ sim_counts <- function(p.beta, i.beta, e.beta, S, L, U){
 }
 
 # need to modify the sim_QLfit function to obtain pvalue from two different groups after classification
-
+# i.beta <- .1; e.beta <- .5
 sim_QLfit <- function(p.beta, i.beta, e.beta, S, L, U){
   sim.data <- sim_counts(p.beta, i.beta, e.beta, S, L, U)
   counts <- sim.data$counts
@@ -288,6 +288,7 @@ sim_QLfit <- function(p.beta, i.beta, e.beta, S, L, U){
   
   ebp_cov <- laply(1:J, function(j)
     ifelse(ebp.cov$h.ebp[j] < .5,  1, 0))
+  
   if ((sum(ebp_cov ==0)!= 0) & (sum(ebp_cov ==1)!=0))
   {
 ## code to fit QL.fit for each set of genes (cov and nocov)
@@ -311,9 +312,8 @@ sim_QLfit <- function(p.beta, i.beta, e.beta, S, L, U){
 #x1 <- as.factor(rep(1:2, each = K))
   design.list[[1]] <- model.matrix(~ x1)
   design.list[[2]] <- rep(1, ncol(counts)) # test for covariate
-  size <- apply(counts[ebp_cov ==0, ], 2, quantile, 0.75)
-  fit_ebp_nocov <- QL.fit(counts[ebp_cov ==0, ], design.list, 
-                        
+#  size <- apply(counts[ebp_cov ==0, ], 2, quantile, 0.75)
+  fit_ebp_nocov <- QL.fit(counts[ebp_cov ==0, ], design.list,                        
                       Model="NegBin", 
                       print.progress=FALSE)
 
@@ -356,7 +356,7 @@ pvalue.trt.cov_gebp <- result_gebp_cov$P.values[[3]][,"Treatment"]
 design.list <- vector("list", 2)
 design.list[[1]] <- model.matrix(~ x1)
 design.list[[2]] <- rep(1, ncol(counts)) # test for covariate
-size <- apply(counts[ebp_cov ==0, ], 2, quantile, 0.75)
+#size <- apply(counts[ebp_cov ==0, ], 2, quantile, 0.75)
 fit_gebp_nocov <- QL.fit(counts[gebp_cov ==0, ], design.list, 
                         Model="NegBin", 
                         print.progress=FALSE)
@@ -417,9 +417,56 @@ if ((sum(aic_cov ==0)== 0)) pvalue.trt.aic <- pvalue.trt.cov
 
 if ((sum(aic_cov ==1)== 0)) pvalue.trt.aic <- pvalue.trt.nocov
 
-    pvalue.trt.oracle <- laply(1:J, function(j)
-      ifelse(beta.ind[j]!=0,  pvalue.trt.cov[j], pvalue.trt.nocov[j]))
+## oracle
+
+pvalue.trt.oracle <- laply(1:J, function(j)
+ifelse(beta.ind[j]!=0,  pvalue.trt.cov[j], pvalue.trt.nocov[j]))
+
+aic_cov <- laply(1:J, function(j)
+  ifelse(aic.nocov[j] > aic.cov[j],  1, 0))
+
+
+## code to fit QL.fit for each set of genes (cov and nocov)
+if ((sum(beta.ind ==0)!= 0) & (sum(abs(beta.ind) ==1)!=0))
+{
+  design.list <- vector("list", 3)
+  x1 <- as.factor(rep(1:2, each = K))
+  design.list[[1]] <- model.matrix(~ x1 + c(x[1,],x[2,]))
+  design.list[[2]] <- model.matrix(~ x1) # test for covariate
+  design.list[[3]] <- model.matrix(~ c(x[1,],x[2,])) # test for treatment effect
+  test.mat <- rbind(1:2, c(1,3))
+  row.names(test.mat) <- c("Covariate", "Treatment")
+  #size <- apply(counts[aic_cov ==1, ], 2, quantile, 0.75)
+  fit_oracle_cov <- QL.fit(counts[abs(beta.ind) ==1, ], design.list, 
+                        test.mat,
+                        Model="NegBin", 
+                        print.progress=FALSE)
   
+  result_oracle_cov <- QL.results(fit_oracle_cov,Plot= FALSE)
+  pvalue.trt.cov_oracle <- result_oracle_cov$P.values[[3]][,"Treatment"]
+  
+  design.list <- vector("list", 2)
+  design.list[[1]] <- model.matrix(~ x1)
+  design.list[[2]] <- rep(1, ncol(counts)) # test for covariate
+  #size <- apply(counts[ebp_cov ==0, ], 2, quantile, 0.75)
+  fit_oracle_nocov <- QL.fit(counts[oracle_cov ==0, ], design.list, 
+                          Model="NegBin", 
+                          print.progress=FALSE)
+  
+  result_oracle_nocov <- QL.results(fit_oracle_nocov,Plot= FALSE)
+  
+  pvalue.trt.nocov_oracle <- result_oracle_nocov$P.values[[3]][,1]
+  pvalue.trt.oracle <- rep(0, J)
+  pvalue.trt.oracle[which(abs(beta.ind)==1)] <- pvalue.trt.cov_oracle
+  pvalue.trt.oracle[which(beta.ind==0)] <- pvalue.trt.nocov_oracle
+}
+if ((sum(beta.ind ==0)== 0)) pvalue.trt.oracle <- pvalue.trt.cov
+
+
+if ((sum(abs(beta.ind) ==1)== 0)) pvalue.trt.oracle <- pvalue.trt.nocov
+
+
+
   
   #########################AAA methods with AHE and Grenander Estimate###
   
