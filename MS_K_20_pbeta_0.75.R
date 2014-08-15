@@ -19,7 +19,7 @@ mainDir1 <- paste("/home/ntyet/research/nuisancecovariate/K_", K, sep = "")  # l
 # mainDir1 <- paste("P:/research/nuisancecovariate/K_", K,sep = "")  # linux server
 
 dir.create(mainDir1, showWarnings = FALSE)
-pbeta1 <- "pbeta_0.75"
+pbeta1 <- paste("pbeta_", p.beta, sep = "")
 dir.create(file.path(mainDir1, pbeta1), showWarnings = FALSE)
 sources <- "sources"
 #dir.create(file.path(mainDir1, sources), showWarnings = FALSE)
