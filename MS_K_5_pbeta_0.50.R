@@ -571,7 +571,7 @@ sim_QLfit <- function(p.beta, i.beta, e.beta, S, L, U){
   return(res)
 }
 
-out_20_50 <- llply(1:length(i.beta), function(j){
+out_5_50 <- llply(1:length(i.beta), function(j){
   out1 <- laply(1:n.sim, function(i){
     sim1 <- sim_QLfit(p.beta, i.beta[j], e.beta[j], S, L, U)
     pathsave <- paste(dir.pbeta1, 
@@ -606,7 +606,7 @@ out_20_50 <- llply(1:length(i.beta), function(j){
   out1
 } )
 
-head(out_20_50[[1]])
-head(out_20_50[[2]])
-save(out_20_50, file = paste(dir.pbeta1, "/out_20_50.RData", sep = ""))
+head(out_5_50[[1]])
+head(out_5_50[[2]])
+save(out_5_50, file = paste(dir.pbeta1, "/out_5_50.RData", sep = ""))
 
