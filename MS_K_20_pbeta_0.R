@@ -247,7 +247,7 @@ sim_counts <- function(p.beta, i.beta, e.beta, S, L, U){
 # need to modify the sim_QLfit function to obtain pvalue from two different groups after classification
 
 sim_QLfit <- function(p.beta, i.beta, e.beta, S, L, U){
-  sim.data <- sim_counts(p.beta, i.beta, e.beta, S, L, U) # i.beta <- 0.1, e.beta <- 0.5
+  sim.data <- sim_counts(p.beta, i.beta, e.beta, S, L, U) # i.beta <- 0.1; e.beta <- 0.5
   counts <- sim.data$counts
   beta.ind <- sim.data$beta.ind
   trt.pos <- sim.data$trt.pos
@@ -570,7 +570,8 @@ sim_QLfit <- function(p.beta, i.beta, e.beta, S, L, U){
               fdp.oracle = fdp.oracle)          
   return(res)
 }
-
+#### simulation #####
+#n.sim <- 1; j <- 1; i <- 1
 out_20_0 <- llply(1:length(i.beta), function(j){
   out1 <- laply(1:n.sim, function(i){
     sim1 <- sim_QLfit(p.beta, i.beta[j], e.beta[j], S, L, U)
