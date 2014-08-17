@@ -52,7 +52,7 @@ source(paste(dir.source, "/stevescode/QuasiSeq_1.0-2/QuasiSeq/R/QL.results.R",se
 # load(file ="/run/user/1000/gvfs/smb-share:server=cyfiles.iastate.edu,share=09/22/ntyet//R/RA/Data/Additional Plot/Model0.result.line.rfi.RData")
 load(file = paste(dir.source, "/Model0.line.rfi.RData",sep = ""))
 load(file = paste(dir.source,"/Model0.result.line.rfi.RData",sep = ""))
-#str(result.line.rfi)
+str(result.line.rfi)
 # hist(result.line.rfi$P.values[[3]][,"RFI.value"])
 # str(result.line.rfi$P.values[[3]])
 #counts <- as.matrix(dat2[rowSums(dat2>0)>1&
@@ -162,6 +162,9 @@ fdr_ebp <- function(ebp.temp){
 }
 
 ##Sim counts data
+# need to check if the function QL.fit has some error in the code
+# why there is some error in simulation, the same error compare to the last time I did the 
+# simulation 
 
 sim_counts <- function(p.beta, i.beta, e.beta, S, L, U){
   omega <- NULL
@@ -244,7 +247,7 @@ sim_counts <- function(p.beta, i.beta, e.beta, S, L, U){
 # need to modify the sim_QLfit function to obtain pvalue from two different groups after classification
 
 sim_QLfit <- function(p.beta, i.beta, e.beta, S, L, U){
-  sim.data <- sim_counts(p.beta, i.beta, e.beta, S, L, U)
+  sim.data <- sim_counts(p.beta, i.beta, e.beta, S, L, U) # i.beta <- 0.1, e.beta <- 0.5
   counts <- sim.data$counts
   beta.ind <- sim.data$beta.ind
   trt.pos <- sim.data$trt.pos
@@ -280,14 +283,16 @@ sim_QLfit <- function(p.beta, i.beta, e.beta, S, L, U){
   pvalue.trt.nocov <- result.fit$P.values[[3]][,1]
   pvalue.trt.cov <- result.fit2$P.values[[3]][,2]
   
+  
   ebp.cov <- pval.hist.modified0(pvalue.cov)
   g.ebp.cov <- pval_hist_grenander(pvalue.cov)
   
   aic.nocov <- AIC_QL(counts, fit)
   aic.cov <- AIC_QL(counts, fit.2)
   
-  ebp_cov <- laply(1:J, function(j)
-    ifelse(ebp.cov$h.ebp[j] < .5,  1, 0))
+  ebp_cov <- laply(1:J, function(j)ifelse(ebp.cov$h.ebp[j] < .5,  1, 0))
+#   sum(abs(beta.ind)*ebp_cov)
+#   p.beta
   
   if ((sum(ebp_cov ==0)!= 0) & (sum(ebp_cov ==1)!=0))
   {
@@ -308,17 +313,18 @@ sim_QLfit <- function(p.beta, i.beta, e.beta, S, L, U){
     
     result_ebp_cov <- QL.results(fit_ebp_cov,Plot= FALSE)
     pvalue.trt.cov_ebp <- result_ebp_cov$P.values[[3]][,"Treatment"]
+    
     design.list <- vector("list", 2)
     #x1 <- as.factor(rep(1:2, each = K))
     design.list[[1]] <- model.matrix(~ x1)
     design.list[[2]] <- rep(1, ncol(counts)) # test for covariate
     #  size <- apply(counts[ebp_cov ==0, ], 2, quantile, 0.75)
-    fit_ebp_nocov <- QL.fit(counts[ebp_cov ==0, ], design.list,                        
+    fit_ebp_nocov <- QL.fit(counts[ebp_cov ==0, ], 
+                            design.list,                        
                             Model="NegBin", 
                             print.progress=FALSE)
     
     result_ebp_nocov <- QL.results(fit_ebp_nocov,Plot= FALSE)
-    
     pvalue.trt.nocov_ebp <- result_ebp_nocov$P.values[[3]][,1]
     pvalue.trt.ebp <- rep(0, J)
     pvalue.trt.ebp[which(ebp_cov==1)] <- pvalue.trt.cov_ebp
@@ -366,7 +372,7 @@ sim_QLfit <- function(p.beta, i.beta, e.beta, S, L, U){
     pvalue.trt.nocov_gebp <- result_gebp_nocov$P.values[[3]][,1]
     pvalue.trt.g.ebp <- rep(0, J)
     pvalue.trt.g.ebp[which(gebp_cov==1)] <- pvalue.trt.cov_gebp
-    pvalue.trt.g.ebp[which(ebp_cov==0)] <- pvalue.trt.nocov_gebp
+    pvalue.trt.g.ebp[which(gebp_cov==0)] <- pvalue.trt.nocov_gebp
   }
   
   if ((sum(gebp_cov ==0)== 0)) pvalue.trt.g.ebp <- pvalue.trt.cov
@@ -380,8 +386,7 @@ sim_QLfit <- function(p.beta, i.beta, e.beta, S, L, U){
     ifelse(aic.nocov[j] > aic.cov[j],  1, 0))
   ## code to fit QL.fit for each set of genes (cov and nocov)
   if ((sum(aic_cov ==0)!= 0) & (sum(aic_cov ==1)!=0))
-  {
-    design.list <- vector("list", 3)
+  { design.list <- vector("list", 3)
     x1 <- as.factor(rep(1:2, each = K))
     design.list[[1]] <- model.matrix(~ x1 + c(x[1,],x[2,]))
     design.list[[2]] <- model.matrix(~ x1) # test for covariate
@@ -400,7 +405,7 @@ sim_QLfit <- function(p.beta, i.beta, e.beta, S, L, U){
     design.list <- vector("list", 2)
     design.list[[1]] <- model.matrix(~ x1)
     design.list[[2]] <- rep(1, ncol(counts)) # test for covariate
-    size <- apply(counts[ebp_cov ==0, ], 2, quantile, 0.75)
+    size <- apply(counts[aic_cov ==0, ], 2, quantile, 0.75)
     fit_aic_nocov <- QL.fit(counts[aic_cov ==0, ], design.list, 
                             Model="NegBin", 
                             print.progress=FALSE)
@@ -410,7 +415,7 @@ sim_QLfit <- function(p.beta, i.beta, e.beta, S, L, U){
     pvalue.trt.nocov_aic <- result_aic_nocov$P.values[[3]][,1]
     pvalue.trt.aic <- rep(0, J)
     pvalue.trt.aic[which(aic_cov==1)] <- pvalue.trt.cov_aic
-    pvalue.trt.aic[which(ebp_cov==0)] <- pvalue.trt.nocov_aic
+    pvalue.trt.aic[which(aic_cov==0)] <- pvalue.trt.nocov_aic
   }
   if ((sum(aic_cov ==0)== 0)) pvalue.trt.aic <- pvalue.trt.cov
   
@@ -419,7 +424,8 @@ sim_QLfit <- function(p.beta, i.beta, e.beta, S, L, U){
   
   ## oracle
   
- 
+  
+  
   ## code to fit QL.fit for each set of genes (cov and nocov)
   if ((sum(beta.ind ==0)!= 0) & (sum(abs(beta.ind) ==1)!=0))
   {
@@ -443,7 +449,7 @@ sim_QLfit <- function(p.beta, i.beta, e.beta, S, L, U){
     design.list[[1]] <- model.matrix(~ x1)
     design.list[[2]] <- rep(1, ncol(counts)) # test for covariate
     #size <- apply(counts[ebp_cov ==0, ], 2, quantile, 0.75)
-    fit_oracle_nocov <- QL.fit(counts[beta.ind==0, ], design.list, 
+    fit_oracle_nocov <- QL.fit(counts[beta.ind ==0, ], design.list, 
                                Model="NegBin", 
                                print.progress=FALSE)
     
@@ -565,8 +571,7 @@ sim_QLfit <- function(p.beta, i.beta, e.beta, S, L, U){
   return(res)
 }
 
-
-out_5_0 <- llply(1:length(i.beta), function(j){
+out_20_0 <- llply(1:length(i.beta), function(j){
   out1 <- laply(1:n.sim, function(i){
     sim1 <- sim_QLfit(p.beta, i.beta[j], e.beta[j], S, L, U)
     pathsave <- paste(dir.pbeta1, 
@@ -601,7 +606,7 @@ out_5_0 <- llply(1:length(i.beta), function(j){
   out1
 } )
 
-head(out_5_0[[1]])
-head(out_5_0[[2]])
-save(out_5_0, file = paste(dir.pbeta1, "/out_5_0.RData", sep = ""))
+head(out_20_0[[1]])
+head(out_20_0[[2]])
+save(out_20_0, file = paste(dir.pbeta1, "/out_20_0.RData", sep = ""))
 
