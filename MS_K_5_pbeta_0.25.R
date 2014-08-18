@@ -1,7 +1,6 @@
-library("edgeR");library("plyr");library("fdrtool");library("AUC"); library("maps") ;library("fields")
+library("QuasiSeq");library("edgeR");library("plyr");library("fdrtool");library("AUC"); library("maps") ;library("fields")
 I <- 2; J <- 1000
 K <- 5
-
 DE <- round(J*.2)
 EE <- J - DE
 S <- 1.25
@@ -35,10 +34,10 @@ source(paste(dir.source, "/QuasiSeq_Method_CompareFDR_BH_EBP_AHB_m0/hybrid-poiss
 source(paste(dir.source, "/QuasiSeq_Method_CompareFDR_BH_EBP_AHB_m0/Hyprid_poisson_test_vc_modified0.R",sep =""))
 source(paste(dir.source, "/QuasiSeq_Method_CompareFDR_BH_EBP_AHB_m0/Hyprid_poisson_test_vc_modified1.R",sep =""))
 #source(paste(dir.source, "/QuasiSeq_Method_CompareFDR_BH_EBP_AHB_m0/fdrtool_1.2.10/fdrtool/R/ecdf.pval.R",sep =""))
-source(paste(dir.source, "/stevescode/QuasiSeq_1.0-2/QuasiSeq/R/QL.fit.R",sep=""))
-source(paste(dir.source, "/stevescode/QuasiSeq_1.0-2/QuasiSeq/R/NBDev.R",sep =""))
-source(paste(dir.source, "/stevescode/QuasiSeq_1.0-2/QuasiSeq/R/PoisDev.R",sep =""))
-source(paste(dir.source, "/stevescode/QuasiSeq_1.0-2/QuasiSeq/R/QL.results.R",sep =""))
+# source(paste(dir.source, "/stevescode/QuasiSeq_1.0-2/QuasiSeq/R/QL.fit.R",sep=""))
+# source(paste(dir.source, "/stevescode/QuasiSeq_1.0-2/QuasiSeq/R/NBDev.R",sep =""))
+# source(paste(dir.source, "/stevescode/QuasiSeq_1.0-2/QuasiSeq/R/PoisDev.R",sep =""))
+# source(paste(dir.source, "/stevescode/QuasiSeq_1.0-2/QuasiSeq/R/QL.results.R",sep =""))
 
 # Load RFI count.mean and NBdisp from model0RFI.line
 
