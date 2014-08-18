@@ -9,7 +9,7 @@ U <- 0.5
 p.beta <- 0.75
 i.beta <- c(0.1, 1)
 e.beta <- c(0.5, 1.5)
-n.sim <- 100
+n.sim <- 20
 mainDir <- "/home/ntyet/research/nuisancecovariate" # linux server
 mainDir1 <- paste("/home/ntyet/research/nuisancecovariate/K_", K, sep = "")  # linux server
 
