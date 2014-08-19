@@ -6,7 +6,7 @@ EE <- J - DE
 S <- 1.25
 L <- 0.1
 U <- 0.5
-p.beta <- 0.75
+p.beta <- 0.25
 i.beta <- c(0.1, 1)
 e.beta <- c(0.5, 1.5)
 n.sim <- 20
@@ -522,7 +522,7 @@ edger_fit <- function(p.beta, i.beta, e.beta, S, L, U){
 
 # j <- 2;i <- 63 
 
-edger_out_20_75 <- llply(1:length(i.beta), function(j){
+edger_out_20_25 <- llply(1:length(i.beta), function(j){
   out1 <- laply(1:n.sim, function(i){
     edger_fit_out <- edger_fit(p.beta, i.beta[j], e.beta[j], S, L, U)
     pathsave <- paste(dir.pbeta1, 
@@ -557,7 +557,7 @@ edger_out_20_75 <- llply(1:length(i.beta), function(j){
   out1
 } )
 
-head(edger_out_20_75[[1]])
-head(edger_out_20_75[[2]])
-save(edger_out_20_75, file = paste(mainDir1, "/edger/edger_out_20_75.RData", sep = ""))
+head(edger_out_20_25[[1]])
+head(edger_out_20_25[[2]])
+save(edger_out_20_25, file = paste(mainDir1, "/edger/edger_out_20_25.RData", sep = ""))
 
