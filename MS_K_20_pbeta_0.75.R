@@ -230,7 +230,7 @@ sim_counts <- function(p.beta, i.beta, e.beta, S, L, U){
           y[i,j,k]  <- rnbinom(n=1, size=1/omega[j], mu=mu[i,j,k])
         }
       }
-      if (mean(y[,j,])>1& sum(y[,j,]>0)>1) break
+      if (mean(y[,j,])>4& sum(y[,j,]>0)>1) break
     }
   }
   
