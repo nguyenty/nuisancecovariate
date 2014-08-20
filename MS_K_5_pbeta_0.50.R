@@ -9,7 +9,7 @@ U <- 0.5
 p.beta <- 0.50
 i.beta <- c(0.1, 1)
 e.beta <- c(0.5, 1.5)
-n.sim <- 20
+n.sim <- 100
 mainDir <- "/home/ntyet/research/nuisancecovariate" # linux server
 mainDir1 <- paste("/home/ntyet/research/nuisancecovariate/K_", K, sep = "")  # linux server
 
@@ -249,6 +249,15 @@ sim_counts <- function(p.beta, i.beta, e.beta, S, L, U){
 sim_QLfit <- function(p.beta, i.beta, e.beta, S, L, U){
   sim.data <- sim_counts(p.beta, i.beta, e.beta, S, L, U) # i.beta <- 0.1, e.beta <- 0.5
   counts <- sim.data$counts
+  pathsave <- paste(dir.pbeta1, 
+                    "/p.beta_",
+                    p.beta, 
+                    "i.beta_",
+                    i.beta,
+                    "e.beta_",
+                    e.beta,
+                    "_simdata.RData",sep = "")
+  save(sim.data, file = pathsave)
   beta.ind <- sim.data$beta.ind
   trt.pos <- sim.data$trt.pos
   x <- sim.data$x
