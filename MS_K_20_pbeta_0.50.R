@@ -296,14 +296,16 @@ sim_QLfit <- function(p.beta, i.beta, e.beta, S, L, U){
   ebp.cov <- pval.hist.modified0(pvalue.cov)
   g.ebp.cov <- pval_hist_grenander(pvalue.cov)
   
-#   aic.nocov <- AIC_QL(counts, fit)
-#   aic.cov <- AIC_QL(counts, fit.2)
+  
+  aic.nocov <- AIC_QL(counts, fit)
+  aic.cov <- AIC_QL(counts, fit.2)
 #   
   ebp_cov <- laply(1:J, function(j)ifelse(ebp.cov$h.ebp[j] < .5,  1, 0))
 #   sum(abs(beta.ind)*ebp_cov)
 #   p.beta
+# sum(ebp_cov)
   
-  if ((sum(ebp_cov ==0)!= 0) & (sum(ebp_cov ==1)!=0))
+  if ((sum(ebp_cov ==0)> 4) & (sum(ebp_cov ==1)> 4))
   {
     ## code to fit QL.fit for each set of genes (cov and nocov)
     design.list <- vector("list", 3)
@@ -340,17 +342,18 @@ sim_QLfit <- function(p.beta, i.beta, e.beta, S, L, U){
     pvalue.trt.ebp[which(ebp_cov==0)] <- pvalue.trt.nocov_ebp
   }
   
-  if ((sum(ebp_cov ==0)== 0)) pvalue.trt.ebp <- pvalue.trt.cov
+  if ((sum(ebp_cov ==0) <= 4)) pvalue.trt.ebp <- pvalue.trt.cov
   
   
-  if ((sum(ebp_cov ==1)== 0)) pvalue.trt.ebp <- pvalue.trt.nocov
+  if ((sum(ebp_cov ==1) <= 4)) pvalue.trt.ebp <- pvalue.trt.nocov
   # gene classification when using grenander estimator
   
-  
+#   # sum(gebp_cov)
+# # sum(ebp_cov)
   gebp_cov <- laply(1:J, function(j)
     ifelse(g.ebp.cov$h.ebp[j] < .5,  1, 0))
   ## code to fit QL.fit for each set of genes (cov and nocov)
-  if ((sum(gebp_cov ==0)!= 0) & (sum(gebp_cov ==1)!=0))
+  if ((sum(gebp_cov ==0)> 4) & (sum(gebp_cov ==1) > 4))
   {
     design.list <- vector("list", 3)
     x1 <- as.factor(rep(1:2, each = K))
@@ -384,59 +387,59 @@ sim_QLfit <- function(p.beta, i.beta, e.beta, S, L, U){
     pvalue.trt.g.ebp[which(gebp_cov==0)] <- pvalue.trt.nocov_gebp
   }
   
-  if ((sum(gebp_cov ==0)== 0)) pvalue.trt.g.ebp <- pvalue.trt.cov
+  if ((sum(gebp_cov ==0)<= 4)) pvalue.trt.g.ebp <- pvalue.trt.cov
   
   
-  if ((sum(gebp_cov ==1)== 0)) pvalue.trt.g.ebp <- pvalue.trt.nocov
-  # gene classification when using aic
+  if ((sum(gebp_cov ==1)<= 4)) pvalue.trt.g.ebp <- pvalue.trt.nocov
+  #gene classification when using aic
   
-#   
-#   aic_cov <- laply(1:J, function(j)
-#     ifelse(aic.nocov[j] > aic.cov[j],  1, 0))
-#   ## code to fit QL.fit for each set of genes (cov and nocov)
-#   if ((sum(aic_cov ==0)!= 0) & (sum(aic_cov ==1)!=0))
-#   { design.list <- vector("list", 3)
-#     x1 <- as.factor(rep(1:2, each = K))
-#     design.list[[1]] <- model.matrix(~ x1 + c(x[1,],x[2,]))
-#     design.list[[2]] <- model.matrix(~ x1) # test for covariate
-#     design.list[[3]] <- model.matrix(~ c(x[1,],x[2,])) # test for treatment effect
-#     test.mat <- rbind(1:2, c(1,3))
-#     row.names(test.mat) <- c("Covariate", "Treatment")
-#     #size <- apply(counts[aic_cov ==1, ], 2, quantile, 0.75)
-#     fit_aic_cov <- QL.fit(counts[aic_cov ==1, ], design.list, 
-#                           test.mat,
-#                           Model="NegBin", 
-#                           print.progress=FALSE)
-#     
-#     result_aic_cov <- QL.results(fit_aic_cov,Plot= FALSE)
-#     pvalue.trt.cov_aic <- result_aic_cov$P.values[[3]][,"Treatment"]
-#     
-#     design.list <- vector("list", 2)
-#     design.list[[1]] <- model.matrix(~ x1)
-#     design.list[[2]] <- rep(1, ncol(counts)) # test for covariate
-#     size <- apply(counts[aic_cov ==0, ], 2, quantile, 0.75)
-#     fit_aic_nocov <- QL.fit(counts[aic_cov ==0, ], design.list, 
-#                             Model="NegBin", 
-#                             print.progress=FALSE)
-#     
-#     result_aic_nocov <- QL.results(fit_aic_nocov,Plot= FALSE)
-#     
-#     pvalue.trt.nocov_aic <- result_aic_nocov$P.values[[3]][,1]
-#     pvalue.trt.aic <- rep(0, J)
-#     pvalue.trt.aic[which(aic_cov==1)] <- pvalue.trt.cov_aic
-#     pvalue.trt.aic[which(aic_cov==0)] <- pvalue.trt.nocov_aic
-#   }
-#   if ((sum(aic_cov ==0)== 0)) pvalue.trt.aic <- pvalue.trt.cov
-#   
-#   
-#   if ((sum(aic_cov ==1)== 0)) pvalue.trt.aic <- pvalue.trt.nocov
-#   
+#   sum(aic_cov)
+  aic_cov <- laply(1:J, function(j)
+    ifelse(aic.nocov[j] > aic.cov[j],  1, 0))
+  ## code to fit QL.fit for each set of genes (cov and nocov)
+  if ((sum(aic_cov ==0)>4) & (sum(aic_cov ==1)>4))
+  { design.list <- vector("list", 3)
+    x1 <- as.factor(rep(1:2, each = K))
+    design.list[[1]] <- model.matrix(~ x1 + c(x[1,],x[2,]))
+    design.list[[2]] <- model.matrix(~ x1) # test for covariate
+    design.list[[3]] <- model.matrix(~ c(x[1,],x[2,])) # test for treatment effect
+    test.mat <- rbind(1:2, c(1,3))
+    row.names(test.mat) <- c("Covariate", "Treatment")
+    #size <- apply(counts[aic_cov ==1, ], 2, quantile, 0.75)
+    fit_aic_cov <- QL.fit(counts[aic_cov ==1, ], design.list, 
+                          test.mat,
+                          Model="NegBin", 
+                          print.progress=FALSE)
+    
+    result_aic_cov <- QL.results(fit_aic_cov,Plot= FALSE)
+    pvalue.trt.cov_aic <- result_aic_cov$P.values[[3]][,"Treatment"]
+    
+    design.list <- vector("list", 2)
+    design.list[[1]] <- model.matrix(~ x1)
+    design.list[[2]] <- rep(1, ncol(counts)) # test for covariate
+    size <- apply(counts[aic_cov ==0, ], 2, quantile, 0.75)
+    fit_aic_nocov <- QL.fit(counts[aic_cov ==0, ], design.list, 
+                            Model="NegBin", 
+                            print.progress=FALSE)
+    
+    result_aic_nocov <- QL.results(fit_aic_nocov,Plot= FALSE)
+    
+    pvalue.trt.nocov_aic <- result_aic_nocov$P.values[[3]][,1]
+    pvalue.trt.aic <- rep(0, J)
+    pvalue.trt.aic[which(aic_cov==1)] <- pvalue.trt.cov_aic
+    pvalue.trt.aic[which(aic_cov==0)] <- pvalue.trt.nocov_aic
+  }
+  if ((sum(aic_cov ==0)<=4)) pvalue.trt.aic <- pvalue.trt.cov
+  
+  
+  if ((sum(aic_cov ==1)<=4)) pvalue.trt.aic <- pvalue.trt.nocov
+  
   ## oracle
   
   
   
   ## code to fit QL.fit for each set of genes (cov and nocov)
-  if ((sum(beta.ind ==0)!= 0) & (sum(abs(beta.ind) ==1)!=0))
+  if ((sum(beta.ind ==0)> 4) & (sum(abs(beta.ind) ==1)>4))
   {
     design.list <- vector("list", 3)
     x1 <- as.factor(rep(1:2, each = K))
@@ -469,10 +472,10 @@ sim_QLfit <- function(p.beta, i.beta, e.beta, S, L, U){
     pvalue.trt.oracle[which(abs(beta.ind)==1)] <- pvalue.trt.cov_oracle
     pvalue.trt.oracle[which(beta.ind==0)] <- pvalue.trt.nocov_oracle
   }
-  if ((sum(beta.ind ==0)== 0)) pvalue.trt.oracle <- pvalue.trt.cov
+  if ((sum(beta.ind ==0)<=4)) pvalue.trt.oracle <- pvalue.trt.cov
   
   
-  if ((sum(abs(beta.ind) ==1)== 0)) pvalue.trt.oracle <- pvalue.trt.nocov
+  if ((sum(abs(beta.ind) ==1)<=4)) pvalue.trt.oracle <- pvalue.trt.nocov
   
   
   
@@ -489,7 +492,7 @@ sim_QLfit <- function(p.beta, i.beta, e.beta, S, L, U){
   g.ebp.trt.nocov <- pval_hist_grenander(pvalue.trt.nocov)
   g.ebp.trt.cov <- pval_hist_grenander(pvalue.trt.cov)
   g.aaa.trt <- g.ebp.trt.nocov$h.ebp*g.ebp.cov$h.ebp +g.ebp.trt.cov$h.ebp*(1-g.ebp.cov$h.ebp)
-  
+#   
   
   # ROC curves for 7 methods
   
@@ -506,9 +509,9 @@ sim_QLfit <- function(p.beta, i.beta, e.beta, S, L, U){
   auc.g.ebp <- auc_out(pvalue.trt.g.ebp)[1]
   auc.g.ebp2 <- auc_out(pvalue.trt.g.ebp)[2]
   
-#   auc.aic <- auc_out(pvalue.trt.aic)[1]
-#   auc.aic2 <- auc_out(pvalue.trt.aic)[2]
-#   
+  auc.aic <- auc_out(pvalue.trt.aic)[1]
+  auc.aic2 <- auc_out(pvalue.trt.aic)[2]
+  
   
   auc.aaa <- auc_out(aaa.trt)[1]
   auc.aaa2 <- auc_out(aaa.trt)[2]
@@ -526,7 +529,7 @@ sim_QLfit <- function(p.beta, i.beta, e.beta, S, L, U){
   fdp.cov <- fdp(pvalue.trt.cov)
   fdp.ebp <- fdp(pvalue.trt.ebp)
   fdp.g.ebp <- fdp(pvalue.trt.g.ebp)
-#   fdp.aic <- fdp(pvalue.trt.aic)
+  fdp.aic <- fdp(pvalue.trt.aic)
   fdp.aaa <- fdr_ebp(aaa.trt)
   fdp.g.aaa <- fdr_ebp(g.aaa.trt)
   fdp.oracle <- fdp(pvalue.trt.oracle)
@@ -546,7 +549,7 @@ sim_QLfit <- function(p.beta, i.beta, e.beta, S, L, U){
               pvalue.trt.cov = pvalue.trt.cov, 
               pvalue.trt.ebp = pvalue.trt.ebp, 
               pvalue.trt.g.ebp = pvalue.trt.g.ebp, 
-#               pvalue.trt.aic = pvalue.trt.aic, 
+              pvalue.trt.aic = pvalue.trt.aic, 
               aaa.trt = aaa.trt, 
               g.aaa.trt = g.aaa.trt, 
               pvalue.trt.oracle,
@@ -555,7 +558,7 @@ sim_QLfit <- function(p.beta, i.beta, e.beta, S, L, U){
               auc.cov = auc.cov,
               auc.ebp = auc.ebp,
               auc.g.ebp = auc.g.ebp,
-#               auc.aic = auc.aic,
+              auc.aic = auc.aic,
               auc.aaa = auc.aaa,
               auc.g.aaa = auc.g.aaa,
               auc.oracle = auc.oracle,
@@ -564,7 +567,7 @@ sim_QLfit <- function(p.beta, i.beta, e.beta, S, L, U){
               auc.cov2 = auc.cov2 ,
               auc.ebp2 = auc.ebp2 ,
               auc.g.ebp2 = auc.g.ebp2,
-#               auc.aic2 = auc.aic2 ,
+              auc.aic2 = auc.aic2 ,
               auc.aaa2 = auc.aaa2,
               auc.g.aaa2 = auc.g.aaa2,
               auc.oracle2 = auc.oracle2,
@@ -573,7 +576,7 @@ sim_QLfit <- function(p.beta, i.beta, e.beta, S, L, U){
               fdp.cov = fdp.cov ,
               fdp.ebp = fdp.ebp ,
               fdp.g.ebp = fdp.g.ebp,
-#               fdp.aic = fdp.aic ,
+              fdp.aic = fdp.aic ,
               fdp.aaa = fdp.aaa,
               fdp.g.aaa =fdp.g.aaa,
               fdp.oracle = fdp.oracle)          
@@ -596,22 +599,25 @@ out_20_50 <- llply(1:length(i.beta), function(j){
     save(sim1, file = pathsave)
     print(paste("pbeta = ", p.beta,", i.beta = ", i.beta[j],  ", m = ", i))
     return(c(auc.nocov = sim1$auc.nocov, auc.cov = sim1$auc.cov, 
-             auc.ebp = sim1$auc.ebp, auc.g.ebp = sim1$auc.g.ebp, 
-#              auc.aic = sim1$auc.aic, 
+             auc.ebp = sim1$auc.ebp, 
+             auc.g.ebp = sim1$auc.g.ebp, 
+             auc.aic = sim1$auc.aic, 
              auc.aaa = sim1$auc.aaa, 
              auc.g.aaa = sim1$auc.g.aaa, auc.oracle = sim1$auc.oracle,
              
              auc.nocov2 = sim1$auc.nocov2, auc.cov2 = sim1$auc.cov2, 
              auc.ebp2 = sim1$auc.ebp2, auc.g.ebp2 = sim1$auc.g.ebp2, 
-#              auc.aic2 = sim1$auc.aic2, 
+             auc.aic2 = sim1$auc.aic2, 
              auc.aaa2 = sim1$auc.aaa2, 
-             auc.g.aaa2 = sim1$auc.g.aaa2, auc.oracle2 = sim1$auc.oracle2, 
+             auc.g.aaa2 = sim1$auc.g.aaa2, 
+             auc.oracle2 = sim1$auc.oracle2, 
              
              fdp.nocov = sim1$fdp.nocov, fdp.cov = sim1$fdp.cov, 
              fdp.ebp = sim1$fdp.ebp, fdp.g.ebp = sim1$fdp.g.ebp, 
-#              fdp.aic = sim1$fdp.aic, 
+             fdp.aic = sim1$fdp.aic, 
              fdp.aaa = sim1$fdp.aaa, 
-             fdp.g.aaa = sim1$fdp.g.aaa, fdp.oracle = sim1$fdp.oracle
+             fdp.g.aaa = sim1$fdp.g.aaa, 
+             fdp.oracle = sim1$fdp.oracle
     ))
   })
   
