@@ -1,12 +1,12 @@
 library("QuasiSeq");library("edgeR");library("plyr");library("fdrtool");library("AUC"); library("maps") ;library("fields")
 I <- 2; J <- 1000
-K <- 20
+K <- 50
 DE <- round(J*.2)
 EE <- J - DE
 S <- 1.25
 L <- 0.1
 U <- 0.5
-p.beta <- 0.50
+p.beta <- 0.75
 i.beta <- c(0.1, 1)
 e.beta <- c(0.5, 1.5)
 n.sim <- 100
@@ -592,7 +592,7 @@ sim_QLfit <- function(p.beta, i.beta, e.beta, S, L, U){
   return(res)
 }
 
-out_20_50 <- llply(1:length(i.beta), function(j){
+out_50_75 <- llply(1:length(i.beta), function(j){
   out1 <- laply(1:n.sim, function(i){
     sim1 <- sim_QLfit(p.beta, i.beta[j], e.beta[j], S, L, U)
     pathsave <- paste(dir.pbeta1, 
@@ -633,7 +633,7 @@ out_20_50 <- llply(1:length(i.beta), function(j){
   out1
 } )
 
-head(out_20_50[[1]])
-head(out_20_50[[2]])
-save(out_20_50, file = paste(dir.pbeta1, "/out_20_50.RData", sep = ""))
+head(out_50_75[[1]])
+head(out_50_75[[2]])
+save(out_50_75, file = paste(dir.pbeta1, "/out_50_75.RData", sep = ""))
 

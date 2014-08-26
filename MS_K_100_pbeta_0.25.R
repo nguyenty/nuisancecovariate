@@ -1,12 +1,12 @@
 library("QuasiSeq");library("edgeR");library("plyr");library("fdrtool");library("AUC"); library("maps") ;library("fields")
 I <- 2; J <- 1000
-K <- 20
+K <- 100
 DE <- round(J*.2)
 EE <- J - DE
 S <- 1.25
 L <- 0.1
 U <- 0.5
-p.beta <- 0.50
+p.beta <- 0.25
 i.beta <- c(0.1, 1)
 e.beta <- c(0.5, 1.5)
 n.sim <- 100
@@ -332,7 +332,7 @@ sim_QLfit <- function(p.beta, i.beta, e.beta, S, L, U){
     #x1 <- as.factor(rep(1:2, each = K))
     design.list[[1]] <- model.matrix(~ x1)
     design.list[[2]] <- rep(1, ncol(counts)) # test for covariate
-   size <- apply(counts[ebp_cov ==0, ], 2, quantile, 0.75)
+    size <- apply(counts[ebp_cov ==0, ], 2, quantile, 0.75)
     fit_ebp_nocov <- QL.fit(counts[ebp_cov ==0, ], 
                             design.list,      
                             # log.offset = log(size),
@@ -353,7 +353,7 @@ sim_QLfit <- function(p.beta, i.beta, e.beta, S, L, U){
   # gene classification when using grenander estimator
   
 #   # sum(gebp_cov)
-# # sum(ebp_cov)
+# # sum(gebp_cov)
   gebp_cov <- laply(1:J, function(j)
     ifelse(g.ebp.cov$h.ebp[j] < .5,  1, 0))
   ## code to fit QL.fit for each set of genes (cov and nocov)
@@ -399,6 +399,7 @@ sim_QLfit <- function(p.beta, i.beta, e.beta, S, L, U){
   #gene classification when using aic
   
 #   sum(aic_cov)
+  #which(aic.nocov<=aic.cov)
   aic_cov <- laply(1:J, function(j)
     ifelse(aic.nocov[j] > aic.cov[j],  1, 0))
   ## code to fit QL.fit for each set of genes (cov and nocov)
@@ -592,7 +593,7 @@ sim_QLfit <- function(p.beta, i.beta, e.beta, S, L, U){
   return(res)
 }
 
-out_20_50 <- llply(1:length(i.beta), function(j){
+out_100_25 <- llply(1:length(i.beta), function(j){
   out1 <- laply(1:n.sim, function(i){
     sim1 <- sim_QLfit(p.beta, i.beta[j], e.beta[j], S, L, U)
     pathsave <- paste(dir.pbeta1, 
@@ -633,7 +634,7 @@ out_20_50 <- llply(1:length(i.beta), function(j){
   out1
 } )
 
-head(out_20_50[[1]])
-head(out_20_50[[2]])
-save(out_20_50, file = paste(dir.pbeta1, "/out_20_50.RData", sep = ""))
+head(out_100_25[[1]])
+head(out_100_25[[2]])
+save(out_100_25, file = paste(dir.pbeta1, "/out_100_25.RData", sep = ""))
 

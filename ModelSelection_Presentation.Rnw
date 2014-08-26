@@ -1,0 +1,1199 @@
+\documentclass[handout,xcolor=pdftex,dvipsnames,table]{beamer} 
+
+\usecolortheme[RGB={0,0,144}]{structure}
+%\usetheme{AnnArbor}\usecolortheme{beaver}
+\usetheme{CambridgeUS}\usecolortheme{dolphin}
+
+\usepackage{verbatim,xmpmulti,color,multicol,multirow}
+\setlength{\unitlength}{\textwidth}  % measure in textwidths
+\usepackage[normalem]{ulem}
+\usepackage{amssymb,amsmath,latexsym}
+\usepackage{booktabs}
+\usepackage{array}
+\newcolumntype{L}{>{$}l<{$}}
+\newcolumntype{C}{>{$}c<{$}}
+\newcolumntype{R}{>{$}r<{$}}
+\newcommand{\nm}[1]{\textnormal{#1}}
+
+
+%\usepackage{beamerthemesplit}
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{caption}[numbered]
+%\setbeamercolor{alerted text}{fg=red}
+%\setbeamertemplate{block body theorem}{bg=orange}
+\setkeys{Gin}{width=0.6\textwidth}
+
+
+\title[Accounting for Nuisance Covariates]{Accounting for Nuisance Covariates when Using RNA-Seq Data to Identify Differentially Expressed Genes}
+\author[Yet Nguyen, Dan Nettleton]{Yet Nguyen \and Dan Nettleton}
+\institute[ISU]{Iowa State University}
+\date{March 18, 2014}
+
+\begin{document}
+
+%\section{Temp??} \begin{comment}
+
+<<chunk_options, echo=FALSE, message=FALSE>>=
+opts_chunk$set(fig.width=9, fig.height=5.5, fig.align='center', size='tiny')
+####################################
+#  #
+####################################
+library(reshape)
+library(ggplot2)
+library(dplyr)
+
+@
+
+\frame{\maketitle}
+
+\section{Introduction}
+
+\frame{\frametitle{Introduction}
+  \begin{itemize}
+  \setlength{\itemsep}{.2in}
+  \item Suppose that we have RNA sequencing (RNA-seq) read count data  
+        on $J$ genes from an experiment with two treatment groups. 
+  
+  \item We want to find genes that are differentially expressed (DE) 
+        between two treatment groups.
+        
+  \item Analyses can often be complicated by the presence of nuisance 
+        factors that arise due to experimental design limitations and 
+        heterogeneity of experimental units that can be seen in 
+        continuous covariates measured for each experimental unit 
+        and/or RNA sample.  
+  \end{itemize}
+}
+% %%%%%%%%%%%%%%%%%%%%%%%
+%
+\frame{\frametitle{Prototypical Dataset}
+
+\begin{table} [h!]
+\centering
+\renewcommand{\arraystretch}{1.5}
+\begin{tabular}{CCCCCCCCC}
+\toprule
+\multicolumn{1}{l}{ }                 &
+\multicolumn{4}{c}{Treatment 1}      &
+\multicolumn{4}{c}{Treatment 2}        \\ 
+\cmidrule(lr){2-5}
+\cmidrule(lr){6-9}
+&
+\multicolumn{1}{c}{$u_{11}$}           &
+\multicolumn{1}{c}{$u_{12}$}           &
+\multicolumn{1}{c}{$\cdots$}            &
+\multicolumn{1}{c}{$u_{1n}$}           &
+\multicolumn{1}{c}{$u_{21}$}           &
+\multicolumn{1}{c}{$u_{22}$}           &
+\multicolumn{1}{c}{$\cdots$}            &
+\multicolumn{1}{c}{$u_{2n}$}            \\
+\midrule
+x            & 0.5    & 0.95   & \dots  & -1.42    & -.45   & .89    & \dots  & 1.2  \\
+\nm{gene 1}  & 56     & 2014   & \cdots & 28       & 31     & 975    & \cdots & 3289 \\ 
+\nm{gene 2}  & 0      & 2      & \cdots & 1        & 0      & 0      & \cdots & 1 \\
+\nm{gene 3}  & 1      & 3      & \cdots & 0        & 0      & 0      & \cdots & 0 \\
+\vdots       & \vdots & \vdots &        & \vdots   & \vdots & \vdots &        & \vdots\\
+\nm{gene }J  & 1701   & 264    & \cdots & 345      & 14     & 234    & \cdots & 34 \\
+
+%\midrule[\heavyrulewidth]
+\bottomrule
+\end{tabular}
+\end{table}
+}
+
+\frame{\frametitle{Analysis Strategies for a Single Covariate}
+\begin{itemize}
+\setlength{\itemsep}{.2in}
+
+\item Ignore the covariate, i.e., assume the covariate is not 
+      associated with the transcript abundance of any gene.
+      
+\item Include the covariate in a model for each gene, i.e., 
+      assume the covariate may be associated with the transcript
+      abundance of each gene.
+
+\item Assume the covariate is associated with transcript abundance 
+      of some subset of genes and consider model selection criteria 
+      or model averaging strategies when performing inference
+      for treatment effects.
+\end{itemize}
+}
+
+
+%%%%%
+
+\frame{\frametitle{Analysis Strategies for a Single Covariate}
+\begin{itemize}
+\setlength{\itemsep}{.2in}
+
+\item Ignore the covariate, i.e., assume the covariate is not 
+      associated with the transcript abundance of any gene.
+      
+\item \textbf{Include the covariate in a model for each gene}, i.e., 
+      assume the covariate may be associated with the transcript
+      abundance of each gene.
+
+\item Assume the covariate is associated with transcript abundance 
+      of some subset of genes and consider model selection criteria 
+      or model averaging strategies when performing inference
+      for treatment effects.
+\end{itemize}
+}
+
+%%%%%
+
+\frame{\frametitle{Scenarios Considered}
+
+<<echo =FALSE, warning=FALSE, fig.align='center',fig.width=9, fig.height=5.5, fig.show='hold'>>=  
+
+par(mfrow = c(2,2))
+# plot1
+x <- c(-2, 2)
+y <- c(-1, 1)
+plot(x, y, ylab = "log(mean)",
+          xlab = "x", xlim = x, ylim = y ,
+     type = "n")
+abline(h =.3, col = "purple")
+
+# plot2
+x <- c(-2, 2)
+y <- c(-1, 1)
+plot(x, y, ylab = "log(mean)",
+     xlab = "x", xlim = x, ylim = y ,
+     type = "n")
+lines(c(-3,3), c(-0.5, 1), col = "purple")
+
+
+# plot3
+x <- c(-2, 2)
+y <- c(-1, 1)
+plot(x, y, ylab = "log(mean)",
+     xlab = "x", xlim = x, ylim = y ,
+     type = "n")
+abline(h =.3, col = "blue")
+abline(h =-.2, col = "red")
+
+
+
+
+# plot4
+x <- c(-2, 2)
+y <- c(-1, 1)
+plot(x, y, ylab = "log(mean)",
+     xlab = "x", xlim = x, ylim = y ,
+     type = "n")
+lines(c(-3,3), c(-0.3, 1.2), col = "blue")
+
+lines(c(-3,3), c(-0.6, 0.9), col = "red")
+@
+
+}
+
+\section{Methods}
+
+\frame{\frametitle{Model for Simulated Data}
+
+$i =1, 2$;  $j = 1, \cdots, J$; $k = 1, \cdots, n$ 
+\vspace{.2in}
+ \begin{equation*}
+y_{ijk} \sim \mbox{NegBin}(\mu_{ijk}, \omega_{j}),\quad 
+ \log(\mu_{ijk}) = \tau_{ij} +\beta_j x_{k},
+\end{equation*}
+
+where
+\begin{itemize}
+\setlength{\itemsep}{0.2in}
+ \item  $n = 5$ or $n = 20$ experimential units per treatment
+ 
+ \item $x_{k}\sim N(0,1).$
+
+ \end{itemize}
+}
+
+
+
+
+\frame{\frametitle{Parameters Used for Simulation}
+ \begin{itemize}
+ \setlength{\itemsep}{.2in}
+ \item $\tau_{1j}-\tau_{2j}$ represents the log fold change for gene $j$.
+ 
+ \item $\omega_j$ is the negative binomial dispersion parameter.
+ 
+ \item Values for $\tau_{1j} - \tau_{2j}$ and $\omega_j$ were simulated
+       to match values estimated from real data.
+       
+ \item In all simulations, 80\% of the $\tau_{1j}-\tau_{2j}$ values
+       were set to zero among $J = 1000$ genes.
+ 
+ \end{itemize}
+}
+
+
+
+
+\frame{\frametitle{Simulated Slope Coefficients}
+
+\begin{itemize}
+\setlength{\itemsep}{.15in}
+\item $\beta_j \sim \frac{\nu}{2}\times\mbox{Unif}(L,U)+ \frac{\nu}{2}\times(-\mbox{Unif}(L, U))+ (1-\nu)\times \delta_{\{0\}} $
+
+\hspace{.15in}
+\begin{itemize}
+
+\setlength{\itemsep}{.15in}
+\item $\nu \in \{0, 0.25, 0.50, 0.75\}$
+\item $(L,U) \in \{(0.1, 0.5),(1, 1.5)\} $
+
+\end{itemize}
+\end{itemize}
+}
+
+
+%%%%
+\frame{\frametitle{Testing for Treatment and Covariate Effects}
+\begin{itemize}
+\setlength{\itemsep}{.2in}
+
+\item The \texttt{QuasiSeq} R package (Lund et al., 2012) was used to 
+      obtain a $p$-value for each test.
+\item $p_{j\tau}$ is the $p$-value for the test of $H_{0j}: \tau_{1j}=\tau_{2j} $
+      for the no-covariate model where $\log(\mu_{ijk}) = \tau_{ij}$.
+
+\item $p_{j\tau|\beta}$ is the $p$-value for the test of $H_{0j}: \tau_{1j}=\tau_{2j} $
+      for the covariate model where $\log(\mu_{ijk}) = \tau_{ij} +\beta_j x_k$.
+
+\item $p_{j\beta|\tau}$ is the $p$-value for the test of $H_{0j}: \beta_j = 0 $
+      for the covariate model where $\log(\mu_{ijk}) = \tau_{ij} +\beta_j x_k$.
+      
+\end{itemize}      
+}
+
+
+\frame{\frametitle{Methods for Identification of DE Genes}
+We consider 5 methods for converting $p_{j\tau}, p_{j\tau|\beta}, p_{j\beta|\tau}$
+to a decision about the DE status of gene $j$.
+\vspace{.2in}
+
+\begin{itemize}
+\setlength{\itemsep}{.2in}
+\item [1.] nocov: Convert $p_{j\tau}\; (j = 1,\cdots, J)$ to $q$-values. 
+
+\item [2.] cov: Convert $p_{j\tau|\beta} \;(j = 1,\cdots, J)$ to $q$-values.
+
+\end{itemize}
+}
+
+
+
+\frame{\frametitle{Methods for Identification of DE Genes}
+
+\begin{itemize}
+\setlength{\itemsep}{.2in}
+\item [3.] ebp: Convert 
+           \[
+           p_{j\tau}I[\mbox{EBP}(p_{j\beta|\tau})>0.5] + 
+           p_{j\tau|\beta}I[\mbox{EBP}(p_{j\beta|\tau})\leq 0.5] 
+           \;
+           \]
+           $ (j = 1,\dots, J)$ to $q$-values. 
+
+\item [4.] aic: Convert 
+           \[
+           p_{j\tau}I[\mbox{AIC}_{j\tau} <\mbox{AIC}_{j\tau\beta}]+
+           p_{j\tau|\beta}I[\mbox{AIC}_{j\tau} \geq \mbox{AIC}_{j\tau\beta}] 
+           \;
+           \]
+           $ (j = 1,\dots, J)$ to $q$-values. 
+           
+\item [5.]  aaa: Compute
+           \[
+           \mbox{EBP}_j = \mbox{EBP}(p_{j\tau})\mbox{EBP}(p_{j\beta|\tau})+
+           \mbox{EBP}(p_{j\tau|\beta})[1-\mbox{EBP}(p_{j\beta|\tau})]
+           \]
+           $ (j = 1,\dots, J)$.
+
+\end{itemize}
+}
+
+%%%%%%%%%
+
+\frame{\frametitle{Computing Empirical Bayes Probability (EBP)}
+
+\begin{itemize}
+\setlength{\itemsep}{.2in}
+
+\item Suppose $p_j$ is a $p$-value for testing a null 
+      hypothesis $H_{0j}$ for $j = 1, \cdots, J$.
+
+\item The EBP for $p_j$ is computed as 
+      \[
+      \mbox{EBP}(p_j):= \widehat{\mbox{P}}(H_{0j}|p_j) = 
+      \frac{\hat{\pi}_0}{\hat{f}(p_j)},
+      \]
+      where $\hat{f}$ is the Grenander estimator of the pdf of $p$-values, 
+      which is the nonparametric MLE of  decreasing pdf of $p$-values, and
+      $\hat{\pi}_0 = \hat{f}(1)$.
+      
+\end{itemize}
+}
+
+\frame{\frametitle{Citations for Methods}
+\begin{itemize}
+
+\setlength{\itemsep}{.2in}
+
+\item Storey (2002)
+
+\item Efron et al.\ (2001)
+
+\item Strimmer (2008)
+
+\item Grenander (1956)
+
+\item Pounds and Rai (2009)
+
+\item Pounds et al.\ (2012)
+
+
+\end{itemize}
+}
+
+\frame{\frametitle{Evaluation of Methods}
+ \begin{itemize}
+ \setlength{\itemsep}{.2in}
+ 
+ \item For  100 replications of each simulation setting, we compute
+ \vspace{.2in}
+ 
+ \begin{itemize}
+ \setlength{\itemsep}{.2in}
+ 
+ \item Average Area Under the Receiver Operating Characteristic Curve
+ 
+ \item Estimated FDR when FDR is nominally controlled at 0.05
+ \end{itemize}
+ 
+ \item We use Storey's FDR control procedure based on $q$-values for 
+       Method 1, 2, 3, and 4, and average accummulative EBP for Method 5.
+
+\end{itemize}
+}
+
+\subsection{Simulation results}
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%5
+%%%%%%%%%%5 sample per group%%%%%%%%%%%%%%
+
+\section{Simulation Results}
+
+\frame{\frametitle{Partial Area under ROC ($\mbox{FPR}\leq 0.05$), $n = 5$}
+
+
+<<aucall_05, echo = FALSE, results = 'asis',fig.show='hold',warning=FALSE,message=FALSE>>=
+#wd <- "/run/user/1000/gvfs/smb-share:server=smb.stat.iastate.edu,share=ntyet/research"
+wd <- "P:/research/nuisancecovariate"
+#wd <- "/home/ntyet/research"
+
+load(file = paste(wd, "/K_100/pbeta_0/out_100_0.RData", sep = ""))
+#load(file = paste(wd, "/K_100/pbeta_0.25/out_100_25.RData", sep = ""))
+load(file = paste(wd, "/K_100/pbeta_0.5/out_100_50.RData", sep = ""))
+load(file = paste(wd, "/K_100/pbeta_0.75/out_100_75.RData", sep = ""))
+
+
+load(file = paste(wd, "/K_50/pbeta_0/out_50_0.RData", sep = ""))
+load(file = paste(wd, "/K_50/pbeta_0.25/out_50_25.RData", sep = ""))
+load(file = paste(wd, "/K_50/pbeta_0.5/out_50_50.RData", sep = ""))
+load(file = paste(wd, "/K_50/pbeta_0.75/out_50_75.RData", sep = ""))
+load(file = paste(wd, "/K_20/pbeta_0/out_20_0.RData", sep = ""))
+load(file = paste(wd, "/K_20/pbeta_0.25/out_20_25.RData", sep = ""))
+load(file = paste(wd, "/K_20/pbeta_0.5/out_20_50.RData", sep = ""))
+load(file = paste(wd, "/K_20/pbeta_0.75/out_20_75.RData", sep = ""))
+load(file = paste(wd, "/K_5/pbeta_0/out_5_0.RData", sep = ""))
+load(file = paste(wd, "/K_5/pbeta_0.25/out_5_25.RData", sep = ""))
+load(file = paste(wd, "/K_5/pbeta_0.5/out_5_50.RData", sep = ""))
+load(file = paste(wd, "/K_5/pbeta_0.75/out_5_75.RData", sep = ""))
+
+load("P:/research/nuisancecovariate/edgeR/K_20/pbeta_0.25/edger_out_20_25.RData")
+load("P:/research/nuisancecovariate/edgeR/K_20/pbeta_0.5/edger_out_20_50.RData")
+
+K_5_beta_1_auc_out2 <- as.data.frame(rbind(out_5_0[[1]][,8+c(1,2,3,5,6,8)], 
+                                           out_5_25[[1]][,8+c(1,2,3,5,6,8)], 
+                                           out_5_50[[1]][,8+c(1,2,3,5,6,8)], 
+                                           out_5_75[[1]][,8+c(1,2,3,5,6,8)]))
+
+
+K_5_beta_2_auc_out2 <- as.data.frame(rbind(out_5_0[[2]][,8+c(1,2,3,5,6,8)], 
+                                           out_5_25[[2]][,8+c(1,2,3,5,6,8)], 
+                                           out_5_50[[2]][,8+c(1,2,3,5,6,8)], 
+                                           out_5_75[[2]][,8+c(1,2,3,5,6,8)]))
+
+colnames(K_5_beta_1_auc_out2) <- 
+  colnames(K_5_beta_2_auc_out2) <- 
+  c("nocov", "cov", "ebp", "aic", "aaa", "oracle")
+K_5_beta_1_auc_out2$nu <- K_5_beta_2_auc_out2$nu <- rep(as.character(c(0,25,50,75)), each = 100)
+K_5_auc_out2 <- rbind(K_5_beta_1_auc_out2, K_5_beta_2_auc_out2)
+
+K_5_auc_out2$setup <- rep(c("(L,U)=(0.1,0.5)", "(L,U)=(1,1.5)"), 
+                         each = dim(K_5_beta_1_auc_out2)[1])
+
+
+K_5_auc_out2_melt <- melt(K_5_auc_out2)
+colnames(K_5_auc_out2_melt)[3:4] <- c("Method", "PAUROC") 
+
+K_5_auc_out2_mean <- 
+K_5_auc_out2_melt %.%
+  group_by(nu, setup, Method) %.%
+  summarise(PAUROC = mean(PAUROC))
+
+K_5_auc_out2_mean[K_5_auc_out2_mean$nu==0 & K_5_auc_out2_mean$Method == "nocov",][,4] <- 
+  mean(K_5_auc_out2_mean[K_5_auc_out2_mean$nu==0 & K_5_auc_out2_mean$Method == "nocov",][,4] )
+
+K_5_auc_out2_mean[K_5_auc_out2_mean$nu==0 & K_5_auc_out2_mean$Method == "cov",][,4] <- 
+  mean(K_5_auc_out2_mean[K_5_auc_out2_mean$nu==0 & K_5_auc_out2_mean$Method == "cov",][,4] )
+
+K_5_auc_out2_mean[K_5_auc_out2_mean$nu==0 & K_5_auc_out2_mean$Method == "ebp",][,4] <- 
+  mean(K_5_auc_out2_mean[K_5_auc_out2_mean$nu==0 & K_5_auc_out2_mean$Method == "ebp",][,4] )
+
+K_5_auc_out2_mean[K_5_auc_out2_mean$nu==0 & K_5_auc_out2_mean$Method == "aic",][,4] <- 
+  mean(K_5_auc_out2_mean[K_5_auc_out2_mean$nu==0 & K_5_auc_out2_mean$Method == "aic",][,4] )
+
+K_5_auc_out2_mean[K_5_auc_out2_mean$nu==0 & K_5_auc_out2_mean$Method == "aaa",][,4] <- 
+  mean(K_5_auc_out2_mean[K_5_auc_out2_mean$nu==0 & K_5_auc_out2_mean$Method == "aaa",][,4] )
+
+K_5_auc_out2_mean[K_5_auc_out2_mean$nu==0 & K_5_auc_out2_mean$Method == "oracle",][,4] <- 
+  mean(K_5_auc_out2_mean[K_5_auc_out2_mean$nu==0 & K_5_auc_out2_mean$Method == "oracle",][,4] )
+
+#save(K_5_auc_out2_mean, file = paste(wd, "/K_5/K_5_auc_out2_mean.RData", sep = ""))
+
+#load(file = paste(wd, "/K_5/K_5_auc_out2_mean.RData", sep = ""))
+p <- ggplot(K_5_auc_out2_mean, aes(nu, PAUROC, colour = Method, group = Method)) + geom_line()
+p + facet_grid(.~setup )+
+  xlab(expression(paste(nu)))+
+  theme(axis.text=element_text(size=14),
+        axis.title=element_text(size=14))+ 
+      theme(strip.text.x = element_text(size = 14))+
+  theme(legend.text = element_text(size = 14))+ 
+  theme(legend.title = element_text(size = 14))
+@
+
+}
+
+\frame{\frametitle{Control FDR at 5\%, $n = 5$}
+
+
+<<fdpall, echo = FALSE, results = 'asis',fig.show='hold',warning=FALSE,message=FALSE>>=
+
+K_5_beta_1_fdp_out <- as.data.frame(rbind(out_5_0[[1]][,16+c(1,2,3,5,6,8)], 
+                                           out_5_25[[1]][,16+c(1,2,3,5,6,8)], 
+                                           out_5_50[[1]][,16+c(1,2,3,5,6,8)], 
+                                           out_5_75[[1]][,16+c(1,2,3,5,6,8)]))
+
+
+K_5_beta_2_fdp_out <- as.data.frame(rbind(out_5_0[[2]][,16+c(1,2,3,5,6,8)], 
+                                           out_5_25[[2]][,16+c(1,2,3,5,6,8)], 
+                                           out_5_50[[2]][,16+c(1,2,3,5,6,8)], 
+                                           out_5_75[[2]][,16+c(1,2,3,5,6,8)]))
+
+colnames(K_5_beta_1_fdp_out) <- 
+  colnames(K_5_beta_2_fdp_out) <- 
+  c("nocov", "cov", "ebp", "aic", "aaa", "oracle")
+K_5_beta_1_fdp_out$nu <- K_5_beta_2_fdp_out$nu <- rep(as.character(c(0,25,50,75)), each = 100)
+K_5_fdp_out <- rbind(K_5_beta_1_fdp_out, K_5_beta_2_fdp_out)
+
+K_5_fdp_out$setup <- rep(c("(L,U)=(0.1,0.5)", "(L,U)=(1,1.5)"), 
+                         each = dim(K_5_beta_1_fdp_out)[1])
+
+
+K_5_fdp_out_melt <- melt(K_5_fdp_out)
+colnames(K_5_fdp_out_melt)[3:4] <- c("Method", "FDR") 
+
+K_5_fdp_out_mean <- 
+K_5_fdp_out_melt %.%
+  group_by(nu, setup, Method) %.%
+  summarise(FDR = mean(FDR))
+
+K_5_fdp_out_mean[K_5_fdp_out_mean$nu==0 & K_5_fdp_out_mean$Method == "nocov",][,4] <- 
+  mean(K_5_fdp_out_mean[K_5_fdp_out_mean$nu==0 & K_5_fdp_out_mean$Method == "nocov",][,4] )
+
+K_5_fdp_out_mean[K_5_fdp_out_mean$nu==0 & K_5_fdp_out_mean$Method == "cov",][,4] <- 
+  mean(K_5_fdp_out_mean[K_5_fdp_out_mean$nu==0 & K_5_fdp_out_mean$Method == "cov",][,4] )
+
+K_5_fdp_out_mean[K_5_fdp_out_mean$nu==0 & K_5_fdp_out_mean$Method == "ebp",][,4] <- 
+  mean(K_5_fdp_out_mean[K_5_fdp_out_mean$nu==0 & K_5_fdp_out_mean$Method == "ebp",][,4] )
+
+K_5_fdp_out_mean[K_5_fdp_out_mean$nu==0 & K_5_fdp_out_mean$Method == "aic",][,4] <- 
+  mean(K_5_fdp_out_mean[K_5_fdp_out_mean$nu==0 & K_5_fdp_out_mean$Method == "aic",][,4] )
+
+K_5_fdp_out_mean[K_5_fdp_out_mean$nu==0 & K_5_fdp_out_mean$Method == "aaa",][,4] <- 
+  mean(K_5_fdp_out_mean[K_5_fdp_out_mean$nu==0 & K_5_fdp_out_mean$Method == "aaa",][,4] )
+
+K_5_fdp_out_mean[K_5_fdp_out_mean$nu==0 & K_5_fdp_out_mean$Method == "oracle",][,4] <- 
+  mean(K_5_fdp_out_mean[K_5_fdp_out_mean$nu==0 & K_5_fdp_out_mean$Method == "oracle",][,4] )
+
+#save(K_5_fdp_out_mean, file = paste(wd, "/K_5/K_5_fdp_out_mean.RData", sep = ""))
+
+#load(file = paste(wd, "/K_5/K_5_fdp_out_mean.RData", sep = ""))
+
+p <- ggplot(K_5_fdp_out_mean, aes(nu, FDR, colour = Method, group = Method)) + geom_line()
+p + facet_grid(.~setup )+
+  xlab(expression(paste(nu)))+
+  theme(axis.text=element_text(size=14),
+        axis.title=element_text(size=14))+ 
+      theme(strip.text.x = element_text(size = 14))+
+  theme(legend.text = element_text(size = 14))+ 
+  theme(legend.title = element_text(size = 14))+
+  ylab("Estimated FDR")+theme(axis.text=element_text(size=14),
+        axis.title=element_text(size=14))+
+  geom_hline(yintercept = 0.05)
+@
+}
+
+
+\frame{\frametitle{Partial Area under ROC ($\mbox{FPR}\leq 0.05$), $n = 20$}
+
+
+<<paucall_20, echo = FALSE, results = 'asis',fig.show='hold',warning=FALSE,message=FALSE>>=
+
+K_20_beta_1_auc_out2 <- as.data.frame(rbind(out_20_0[[1]][,8+c(1,2,3,5,6,8)], 
+                                           out_20_25[[1]][,8+c(1,2,3,5,6,8)], 
+                                           out_20_50[[1]][,8+c(1,2,3,5,6,8)], 
+                                           out_20_75[[1]][,8+c(1,2,3,5,6,8)]))
+
+
+K_20_beta_2_auc_out2 <- as.data.frame(rbind(out_20_0[[2]][,8+c(1,2,3,5,6,8)], 
+                                           out_20_25[[2]][,8+c(1,2,3,5,6,8)], 
+                                           out_20_50[[2]][,8+c(1,2,3,5,6,8)], 
+                                           out_20_75[[2]][,8+c(1,2,3,5,6,8)]))
+
+colnames(K_20_beta_1_auc_out2) <- 
+  colnames(K_20_beta_2_auc_out2) <- 
+  c("nocov", "cov", "ebp", "aic", "aaa", "oracle")
+K_20_beta_1_auc_out2$nu <- K_20_beta_2_auc_out2$nu <- rep(as.character(c(0,25,50,75)), each = 100)
+K_20_auc_out2 <- rbind(K_20_beta_1_auc_out2, K_20_beta_2_auc_out2)
+
+K_20_auc_out2$setup <- rep(c("(L,U)=(0.1,0.5)", "(L,U)=(1,1.5)"), 
+                         each = dim(K_20_beta_1_auc_out2)[1])
+
+
+K_20_auc_out2_melt <- melt(K_20_auc_out2)
+colnames(K_20_auc_out2_melt)[3:4] <- c("Method", "PAUROC") 
+
+#colnames(K_20_auc_out2_melt)
+
+K_20_auc_out2_mean <- 
+K_20_auc_out2_melt %.%
+  group_by(nu, setup, Method) %.%
+  summarise(PAUROC = mean(PAUROC))
+K_20_auc_out2_mean[K_20_auc_out2_mean$nu==0 & K_20_auc_out2_mean$Method == "nocov",][,4] <- 
+  mean(K_20_auc_out2_mean[K_20_auc_out2_mean$nu==0 & K_20_auc_out2_mean$Method == "nocov",][,4] )
+
+K_20_auc_out2_mean[K_20_auc_out2_mean$nu==0 & K_20_auc_out2_mean$Method == "cov",][,4] <- 
+  mean(K_20_auc_out2_mean[K_20_auc_out2_mean$nu==0 & K_20_auc_out2_mean$Method == "cov",][,4] )
+
+K_20_auc_out2_mean[K_20_auc_out2_mean$nu==0 & K_20_auc_out2_mean$Method == "ebp",][,4] <- 
+  mean(K_20_auc_out2_mean[K_20_auc_out2_mean$nu==0 & K_20_auc_out2_mean$Method == "ebp",][,4] )
+
+K_20_auc_out2_mean[K_20_auc_out2_mean$nu==0 & K_20_auc_out2_mean$Method == "aic",][,4] <- 
+  mean(K_20_auc_out2_mean[K_20_auc_out2_mean$nu==0 & K_20_auc_out2_mean$Method == "aic",][,4] )
+
+K_20_auc_out2_mean[K_20_auc_out2_mean$nu==0 & K_20_auc_out2_mean$Method == "aaa",][,4] <- 
+  mean(K_20_auc_out2_mean[K_20_auc_out2_mean$nu==0 & K_20_auc_out2_mean$Method == "aaa",][,4] )
+
+K_20_auc_out2_mean[K_20_auc_out2_mean$nu==0 & K_20_auc_out2_mean$Method == "oracle",][,4] <- 
+  mean(K_20_auc_out2_mean[K_20_auc_out2_mean$nu==0 & K_20_auc_out2_mean$Method == "oracle",][,4] )
+#save(K_20_auc_out2_mean, file = paste(wd, "/K_20/K_20_auc_out2_mean.RData", sep = ""))
+
+#load(file = paste(wd, "/K_20/K_20_auc_out2_mean.RData", sep = ""))
+p <- ggplot(K_20_auc_out2_mean, aes(nu, PAUROC, colour = Method, group = Method)) + geom_line()
+p + facet_grid(.~setup )+
+  xlab(expression(paste(nu)))+
+  theme(axis.text=element_text(size=14),
+        axis.title=element_text(size=14))+ 
+      theme(strip.text.x = element_text(size = 14))+
+  theme(legend.text = element_text(size = 14))+ 
+  theme(legend.title = element_text(size = 14))
+@
+
+}
+
+\frame{\frametitle{Control FDR at 5\%, $n = 20$}
+
+
+<<fdpall20, echo = FALSE, results = 'asis',fig.show='hold',warning=FALSE,message=FALSE>>=
+
+K_20_beta_1_fdp_out <- as.data.frame(rbind(out_20_0[[1]][,16+c(1,2,3,5,6,8)], 
+                                           out_20_25[[1]][,16+c(1,2,3,5,6,8)], 
+                                           out_20_50[[1]][,16+c(1,2,3,5,6,8)], 
+                                           out_20_75[[1]][,16+c(1,2,3,5,6,8)]))
+
+
+K_20_beta_2_fdp_out <- as.data.frame(rbind(out_20_0[[2]][,16+c(1,2,3,5,6,8)], 
+                                           out_20_25[[2]][,16+c(1,2,3,5,6,8)], 
+                                           out_20_50[[2]][,16+c(1,2,3,5,6,8)], 
+                                           out_20_75[[2]][,16+c(1,2,3,5,6,8)]))
+
+colnames(K_20_beta_1_fdp_out) <- 
+  colnames(K_20_beta_2_fdp_out) <- 
+  c("nocov", "cov", "ebp", "aic", "aaa", "oracle")
+K_20_beta_1_fdp_out$nu <- K_20_beta_2_fdp_out$nu <- rep(as.character(c(0,25,50,75)), each = 100)
+K_20_fdp_out <- rbind(K_20_beta_1_fdp_out, K_20_beta_2_fdp_out)
+
+K_20_fdp_out$setup <- rep(c("(L,U)=(0.1,0.5)", "(L,U)=(1,1.5)"), 
+                         each = dim(K_20_beta_1_fdp_out)[1])
+
+
+K_20_fdp_out_melt <- melt(K_20_fdp_out)
+colnames(K_20_fdp_out_melt)[3:4] <- c("Method", "FDR") 
+
+#colnames(K_20_fdp_out_melt)
+
+K_20_fdp_out_mean <- 
+K_20_fdp_out_melt %.%
+  group_by(nu, setup, Method) %.%
+  summarise(FDR = mean(FDR))
+
+K_20_fdp_out_mean[K_20_fdp_out_mean$nu==0 & K_20_fdp_out_mean$Method == "nocov",][,4] <- 
+  mean(K_20_fdp_out_mean[K_20_fdp_out_mean$nu==0 & K_20_fdp_out_mean$Method == "nocov",][,4] )
+
+K_20_fdp_out_mean[K_20_fdp_out_mean$nu==0 & K_20_fdp_out_mean$Method == "cov",][,4] <- 
+  mean(K_20_fdp_out_mean[K_20_fdp_out_mean$nu==0 & K_20_fdp_out_mean$Method == "cov",][,4] )
+
+K_20_fdp_out_mean[K_20_fdp_out_mean$nu==0 & K_20_fdp_out_mean$Method == "ebp",][,4] <- 
+  mean(K_20_fdp_out_mean[K_20_fdp_out_mean$nu==0 & K_20_fdp_out_mean$Method == "ebp",][,4] )
+
+K_20_fdp_out_mean[K_20_fdp_out_mean$nu==0 & K_20_fdp_out_mean$Method == "aic",][,4] <- 
+  mean(K_20_fdp_out_mean[K_20_fdp_out_mean$nu==0 & K_20_fdp_out_mean$Method == "aic",][,4] )
+
+K_20_fdp_out_mean[K_20_fdp_out_mean$nu==0 & K_20_fdp_out_mean$Method == "aaa",][,4] <- 
+  mean(K_20_fdp_out_mean[K_20_fdp_out_mean$nu==0 & K_20_fdp_out_mean$Method == "aaa",][,4] )
+
+K_20_fdp_out_mean[K_20_fdp_out_mean$nu==0 & K_20_fdp_out_mean$Method == "oracle",][,4] <- 
+  mean(K_20_fdp_out_mean[K_20_fdp_out_mean$nu==0 & K_20_fdp_out_mean$Method == "oracle",][,4] )
+#save(K_20_fdp_out_mean, file = paste(wd, "/K_20/K_20_fdp_out_mean.RData", sep = ""))
+
+#load(file = paste(wd, "/K_20/K_20_fdp_out_mean.RData", sep = ""))
+
+p <- ggplot(K_20_fdp_out_mean, aes(nu, FDR, colour = Method, group = Method)) + geom_line()
+
+p + facet_grid(.~setup )+
+  xlab(expression(paste(nu)))+
+  theme(axis.text=element_text(size=14),
+        axis.title=element_text(size=14))+ 
+      theme(strip.text.x = element_text(size = 14))+
+  theme(legend.text = element_text(size = 14))+ 
+  theme(legend.title = element_text(size = 14))+
+  ylab("Estimated FDR")+theme(axis.text=element_text(size=14),
+        axis.title=element_text(size=14))+
+  geom_hline(yintercept = 0.05)
+@
+}
+%%
+
+
+%%%%%%%%%%%n = 50%%%%%%%%%%
+
+
+\frame{\frametitle{Partial Area under ROC ($\mbox{FPR}\leq 0.05$), $n = 50$}
+
+
+<<paucall_50, echo = FALSE, results = 'asis',fig.show='hold',warning=FALSE,message=FALSE>>=
+
+K_50_beta_1_auc_out2 <- as.data.frame(rbind(out_50_0[[1]][,8+c(1,2,3,5,6,8)], 
+                                           out_50_25[[1]][,8+c(1,2,3,5,6,8)], 
+                                           out_50_50[[1]][,8+c(1,2,3,5,6,8)], 
+                                           out_50_75[[1]][,8+c(1,2,3,5,6,8)]))
+
+
+K_50_beta_2_auc_out2 <- as.data.frame(rbind(out_50_0[[2]][,8+c(1,2,3,5,6,8)], 
+                                           out_50_25[[2]][,8+c(1,2,3,5,6,8)], 
+                                           out_50_50[[2]][,8+c(1,2,3,5,6,8)], 
+                                           out_50_75[[2]][,8+c(1,2,3,5,6,8)]))
+
+colnames(K_50_beta_1_auc_out2) <- 
+  colnames(K_50_beta_2_auc_out2) <- 
+  c("nocov", "cov", "ebp", "aic", "aaa", "oracle")
+K_50_beta_1_auc_out2$nu <- K_50_beta_2_auc_out2$nu <- rep(as.character(c(0,25,50,75)), each = 100)
+K_50_auc_out2 <- rbind(K_50_beta_1_auc_out2, K_50_beta_2_auc_out2)
+
+K_50_auc_out2$setup <- rep(c("(L,U)=(0.1,0.5)", "(L,U)=(1,1.5)"), 
+                         each = dim(K_50_beta_1_auc_out2)[1])
+
+
+K_50_auc_out2_melt <- melt(K_50_auc_out2)
+colnames(K_50_auc_out2_melt)[3:4] <- c("Method", "PAUROC") 
+
+#colnames(K_50_auc_out2_melt)
+
+K_50_auc_out2_mean <- 
+K_50_auc_out2_melt %.%
+  group_by(nu, setup, Method) %.%
+  summarise(PAUROC = mean(PAUROC))
+K_50_auc_out2_mean[K_50_auc_out2_mean$nu==0 & K_50_auc_out2_mean$Method == "nocov",][,4] <- 
+  mean(K_50_auc_out2_mean[K_50_auc_out2_mean$nu==0 & K_50_auc_out2_mean$Method == "nocov",][,4] )
+
+K_50_auc_out2_mean[K_50_auc_out2_mean$nu==0 & K_50_auc_out2_mean$Method == "cov",][,4] <- 
+  mean(K_50_auc_out2_mean[K_50_auc_out2_mean$nu==0 & K_50_auc_out2_mean$Method == "cov",][,4] )
+
+K_50_auc_out2_mean[K_50_auc_out2_mean$nu==0 & K_50_auc_out2_mean$Method == "ebp",][,4] <- 
+  mean(K_50_auc_out2_mean[K_50_auc_out2_mean$nu==0 & K_50_auc_out2_mean$Method == "ebp",][,4] )
+
+K_50_auc_out2_mean[K_50_auc_out2_mean$nu==0 & K_50_auc_out2_mean$Method == "aic",][,4] <- 
+  mean(K_50_auc_out2_mean[K_50_auc_out2_mean$nu==0 & K_50_auc_out2_mean$Method == "aic",][,4] )
+
+K_50_auc_out2_mean[K_50_auc_out2_mean$nu==0 & K_50_auc_out2_mean$Method == "aaa",][,4] <- 
+  mean(K_50_auc_out2_mean[K_50_auc_out2_mean$nu==0 & K_50_auc_out2_mean$Method == "aaa",][,4] )
+
+K_50_auc_out2_mean[K_50_auc_out2_mean$nu==0 & K_50_auc_out2_mean$Method == "oracle",][,4] <- 
+  mean(K_50_auc_out2_mean[K_50_auc_out2_mean$nu==0 & K_50_auc_out2_mean$Method == "oracle",][,4] )
+#save(K_50_auc_out2_mean, file = paste(wd, "/K_50/K_50_auc_out2_mean.RData", sep = ""))
+
+#load(file = paste(wd, "/K_50/K_50_auc_out2_mean.RData", sep = ""))
+p <- ggplot(K_50_auc_out2_mean, aes(nu, PAUROC, colour = Method, group = Method)) + geom_line()
+p + facet_grid(.~setup )+
+  xlab(expression(paste(nu)))+
+  theme(axis.text=element_text(size=14),
+        axis.title=element_text(size=14))+ 
+      theme(strip.text.x = element_text(size = 14))+
+  theme(legend.text = element_text(size = 14))+ 
+  theme(legend.title = element_text(size = 14))
+@
+
+}
+
+\frame{\frametitle{Control FDR at 5\%, $n = 50$}
+
+
+<<fdpall50, echo = FALSE, results = 'asis',fig.show='hold',warning=FALSE,message=FALSE>>=
+
+K_50_beta_1_fdp_out <- as.data.frame(rbind(out_50_0[[1]][,16+c(1,2,3,5,6,8)], 
+                                           out_50_25[[1]][,16+c(1,2,3,5,6,8)], 
+                                           out_50_50[[1]][,16+c(1,2,3,5,6,8)], 
+                                           out_50_75[[1]][,16+c(1,2,3,5,6,8)]))
+
+
+K_50_beta_2_fdp_out <- as.data.frame(rbind(out_50_0[[2]][,16+c(1,2,3,5,6,8)], 
+                                           out_50_25[[2]][,16+c(1,2,3,5,6,8)], 
+                                           out_50_50[[2]][,16+c(1,2,3,5,6,8)], 
+                                           out_50_75[[2]][,16+c(1,2,3,5,6,8)]))
+
+colnames(K_50_beta_1_fdp_out) <- 
+  colnames(K_50_beta_2_fdp_out) <- 
+  c("nocov", "cov", "ebp", "aic", "aaa", "oracle")
+K_50_beta_1_fdp_out$nu <- K_50_beta_2_fdp_out$nu <- rep(as.character(c(0,25,50,75)), each = 100)
+K_50_fdp_out <- rbind(K_50_beta_1_fdp_out, K_50_beta_2_fdp_out)
+
+K_50_fdp_out$setup <- rep(c("(L,U)=(0.1,0.5)", "(L,U)=(1,1.5)"), 
+                         each = dim(K_50_beta_1_fdp_out)[1])
+
+
+K_50_fdp_out_melt <- melt(K_50_fdp_out)
+colnames(K_50_fdp_out_melt)[3:4] <- c("Method", "FDR") 
+
+#colnames(K_50_fdp_out_melt)
+
+K_50_fdp_out_mean <- 
+K_50_fdp_out_melt %.%
+  group_by(nu, setup, Method) %.%
+  summarise(FDR = mean(FDR))
+
+K_50_fdp_out_mean[K_50_fdp_out_mean$nu==0 & K_50_fdp_out_mean$Method == "nocov",][,4] <- 
+  mean(K_50_fdp_out_mean[K_50_fdp_out_mean$nu==0 & K_50_fdp_out_mean$Method == "nocov",][,4] )
+
+K_50_fdp_out_mean[K_50_fdp_out_mean$nu==0 & K_50_fdp_out_mean$Method == "cov",][,4] <- 
+  mean(K_50_fdp_out_mean[K_50_fdp_out_mean$nu==0 & K_50_fdp_out_mean$Method == "cov",][,4] )
+
+K_50_fdp_out_mean[K_50_fdp_out_mean$nu==0 & K_50_fdp_out_mean$Method == "ebp",][,4] <- 
+  mean(K_50_fdp_out_mean[K_50_fdp_out_mean$nu==0 & K_50_fdp_out_mean$Method == "ebp",][,4] )
+
+K_50_fdp_out_mean[K_50_fdp_out_mean$nu==0 & K_50_fdp_out_mean$Method == "aic",][,4] <- 
+  mean(K_50_fdp_out_mean[K_50_fdp_out_mean$nu==0 & K_50_fdp_out_mean$Method == "aic",][,4] )
+
+K_50_fdp_out_mean[K_50_fdp_out_mean$nu==0 & K_50_fdp_out_mean$Method == "aaa",][,4] <- 
+  mean(K_50_fdp_out_mean[K_50_fdp_out_mean$nu==0 & K_50_fdp_out_mean$Method == "aaa",][,4] )
+
+K_50_fdp_out_mean[K_50_fdp_out_mean$nu==0 & K_50_fdp_out_mean$Method == "oracle",][,4] <- 
+  mean(K_50_fdp_out_mean[K_50_fdp_out_mean$nu==0 & K_50_fdp_out_mean$Method == "oracle",][,4] )
+#save(K_50_fdp_out_mean, file = paste(wd, "/K_50/K_50_fdp_out_mean.RData", sep = ""))
+
+#load(file = paste(wd, "/K_50/K_50_fdp_out_mean.RData", sep = ""))
+
+p <- ggplot(K_50_fdp_out_mean, aes(nu, FDR, colour = Method, group = Method)) + geom_line()
+
+p + facet_grid(.~setup )+
+  xlab(expression(paste(nu)))+
+  theme(axis.text=element_text(size=14),
+        axis.title=element_text(size=14))+ 
+      theme(strip.text.x = element_text(size = 14))+
+  theme(legend.text = element_text(size = 14))+ 
+  theme(legend.title = element_text(size = 14))+
+  ylab("Estimated FDR")+theme(axis.text=element_text(size=14),
+        axis.title=element_text(size=14))+
+  geom_hline(yintercept = 0.05)
+@
+}
+%%
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% n = 100 %%%%%%%%%%%%%%
+
+
+
+
+\frame{\frametitle{Partial Area under ROC ($\mbox{FPR}\leq 0.05$), $n = 100$}
+
+
+<<paucall_100, echo = FALSE, results = 'asis',fig.show='hold',warning=FALSE,message=FALSE>>=
+
+K_100_beta_1_auc_out2 <- as.data.frame(rbind(out_100_0[[1]][,8+c(1,2,3,5,6,8)], 
+#                                            out_100_25[[1]][,8+c(1,2,3,5,6,8)], 
+                                           out_100_50[[1]][,8+c(1,2,3,5,6,8)], 
+                                           out_100_75[[1]][,8+c(1,2,3,5,6,8)]))
+
+
+K_100_beta_2_auc_out2 <- as.data.frame(rbind(out_100_0[[2]][,8+c(1,2,3,5,6,8)], 
+#                                            out_100_25[[2]][,8+c(1,2,3,5,6,8)], 
+                                           out_100_50[[2]][,8+c(1,2,3,5,6,8)], 
+                                           out_100_75[[2]][,8+c(1,2,3,5,6,8)]))
+
+colnames(K_100_beta_1_auc_out2) <- 
+  colnames(K_100_beta_2_auc_out2) <- 
+  c("nocov", "cov", "ebp", "aic", "aaa", "oracle")
+K_100_beta_1_auc_out2$nu <- K_100_beta_2_auc_out2$nu <- rep(as.character(c(0,50,75)), each = 100)
+K_100_auc_out2 <- rbind(K_100_beta_1_auc_out2, K_100_beta_2_auc_out2)
+
+K_100_auc_out2$setup <- rep(c("(L,U)=(0.1,0.5)", "(L,U)=(1,1.5)"), 
+                         each = dim(K_100_beta_1_auc_out2)[1])
+
+
+K_100_auc_out2_melt <- melt(K_100_auc_out2)
+colnames(K_100_auc_out2_melt)[3:4] <- c("Method", "PAUROC") 
+
+#colnames(K_100_auc_out2_melt)
+
+K_100_auc_out2_mean <- 
+K_100_auc_out2_melt %.%
+  group_by(nu, setup, Method) %.%
+  summarise(PAUROC = mean(PAUROC))
+K_100_auc_out2_mean[K_100_auc_out2_mean$nu==0 & K_100_auc_out2_mean$Method == "nocov",][,4] <- 
+  mean(K_100_auc_out2_mean[K_100_auc_out2_mean$nu==0 & K_100_auc_out2_mean$Method == "nocov",][,4] )
+
+K_100_auc_out2_mean[K_100_auc_out2_mean$nu==0 & K_100_auc_out2_mean$Method == "cov",][,4] <- 
+  mean(K_100_auc_out2_mean[K_100_auc_out2_mean$nu==0 & K_100_auc_out2_mean$Method == "cov",][,4] )
+
+K_100_auc_out2_mean[K_100_auc_out2_mean$nu==0 & K_100_auc_out2_mean$Method == "ebp",][,4] <- 
+  mean(K_100_auc_out2_mean[K_100_auc_out2_mean$nu==0 & K_100_auc_out2_mean$Method == "ebp",][,4] )
+
+K_100_auc_out2_mean[K_100_auc_out2_mean$nu==0 & K_100_auc_out2_mean$Method == "aic",][,4] <- 
+  mean(K_100_auc_out2_mean[K_100_auc_out2_mean$nu==0 & K_100_auc_out2_mean$Method == "aic",][,4] )
+
+K_100_auc_out2_mean[K_100_auc_out2_mean$nu==0 & K_100_auc_out2_mean$Method == "aaa",][,4] <- 
+  mean(K_100_auc_out2_mean[K_100_auc_out2_mean$nu==0 & K_100_auc_out2_mean$Method == "aaa",][,4] )
+
+K_100_auc_out2_mean[K_100_auc_out2_mean$nu==0 & K_100_auc_out2_mean$Method == "oracle",][,4] <- 
+  mean(K_100_auc_out2_mean[K_100_auc_out2_mean$nu==0 & K_100_auc_out2_mean$Method == "oracle",][,4] )
+#save(K_100_auc_out2_mean, file = paste(wd, "/K_100/K_100_auc_out2_mean.RData", sep = ""))
+
+#load(file = paste(wd, "/K_100/K_100_auc_out2_mean.RData", sep = ""))
+p <- ggplot(K_100_auc_out2_mean, aes(nu, PAUROC, colour = Method, group = Method)) + geom_line()
+p + facet_grid(.~setup )+
+  xlab(expression(paste(nu)))+
+  theme(axis.text=element_text(size=14),
+        axis.title=element_text(size=14))+ 
+      theme(strip.text.x = element_text(size = 14))+
+  theme(legend.text = element_text(size = 14))+ 
+  theme(legend.title = element_text(size = 14))
+@
+
+}
+
+\frame{\frametitle{Control FDR at 5\%, $n = 100$}
+
+
+<<fdpall100, echo = FALSE, results = 'asis',fig.show='hold',warning=FALSE,message=FALSE>>=
+
+K_100_beta_1_fdp_out <- as.data.frame(rbind(out_100_0[[1]][,16+c(1,2,3,5,6,8)], 
+#                                           out_100_25[[1]][,16+c(1,2,3,5,6,8)], 
+                                           out_100_50[[1]][,16+c(1,2,3,5,6,8)], 
+                                           out_100_75[[1]][,16+c(1,2,3,5,6,8)]))
+
+
+K_100_beta_2_fdp_out <- as.data.frame(rbind(out_100_0[[2]][,16+c(1,2,3,5,6,8)], 
+#                                           out_100_25[[2]][,16+c(1,2,3,5,6,8)], 
+                                           out_100_50[[2]][,16+c(1,2,3,5,6,8)], 
+                                           out_100_75[[2]][,16+c(1,2,3,5,6,8)]))
+
+colnames(K_100_beta_1_fdp_out) <- 
+  colnames(K_100_beta_2_fdp_out) <- 
+  c("nocov", "cov", "ebp", "aic", "aaa", "oracle")
+K_100_beta_1_fdp_out$nu <- K_100_beta_2_fdp_out$nu <- rep(as.character(c(0,50,75)), each = 100)
+K_100_fdp_out <- rbind(K_100_beta_1_fdp_out, K_100_beta_2_fdp_out)
+
+K_100_fdp_out$setup <- rep(c("(L,U)=(0.1,0.5)", "(L,U)=(1,1.5)"), 
+                         each = dim(K_100_beta_1_fdp_out)[1])
+
+
+K_100_fdp_out_melt <- melt(K_100_fdp_out)
+colnames(K_100_fdp_out_melt)[3:4] <- c("Method", "FDR") 
+
+#colnames(K_100_fdp_out_melt)
+
+K_100_fdp_out_mean <- 
+K_100_fdp_out_melt %.%
+  group_by(nu, setup, Method) %.%
+  summarise(FDR = mean(FDR))
+
+K_100_fdp_out_mean[K_100_fdp_out_mean$nu==0 & K_100_fdp_out_mean$Method == "nocov",][,4] <- 
+  mean(K_100_fdp_out_mean[K_100_fdp_out_mean$nu==0 & K_100_fdp_out_mean$Method == "nocov",][,4] )
+
+K_100_fdp_out_mean[K_100_fdp_out_mean$nu==0 & K_100_fdp_out_mean$Method == "cov",][,4] <- 
+  mean(K_100_fdp_out_mean[K_100_fdp_out_mean$nu==0 & K_100_fdp_out_mean$Method == "cov",][,4] )
+
+K_100_fdp_out_mean[K_100_fdp_out_mean$nu==0 & K_100_fdp_out_mean$Method == "ebp",][,4] <- 
+  mean(K_100_fdp_out_mean[K_100_fdp_out_mean$nu==0 & K_100_fdp_out_mean$Method == "ebp",][,4] )
+
+K_100_fdp_out_mean[K_100_fdp_out_mean$nu==0 & K_100_fdp_out_mean$Method == "aic",][,4] <- 
+  mean(K_100_fdp_out_mean[K_100_fdp_out_mean$nu==0 & K_100_fdp_out_mean$Method == "aic",][,4] )
+
+K_100_fdp_out_mean[K_100_fdp_out_mean$nu==0 & K_100_fdp_out_mean$Method == "aaa",][,4] <- 
+  mean(K_100_fdp_out_mean[K_100_fdp_out_mean$nu==0 & K_100_fdp_out_mean$Method == "aaa",][,4] )
+
+K_100_fdp_out_mean[K_100_fdp_out_mean$nu==0 & K_100_fdp_out_mean$Method == "oracle",][,4] <- 
+  mean(K_100_fdp_out_mean[K_100_fdp_out_mean$nu==0 & K_100_fdp_out_mean$Method == "oracle",][,4] )
+#save(K_100_fdp_out_mean, file = paste(wd, "/K_100/K_100_fdp_out_mean.RData", sep = ""))
+
+#load(file = paste(wd, "/K_100/K_100_fdp_out_mean.RData", sep = ""))
+
+p <- ggplot(K_100_fdp_out_mean, aes(nu, FDR, colour = Method, group = Method)) + geom_line()
+
+p + facet_grid(.~setup )+
+  xlab(expression(paste(nu)))+
+  theme(axis.text=element_text(size=14),
+        axis.title=element_text(size=14))+ 
+      theme(strip.text.x = element_text(size = 14))+
+  theme(legend.text = element_text(size = 14))+ 
+  theme(legend.title = element_text(size = 14))+
+  ylab("Estimated FDR")+theme(axis.text=element_text(size=14),
+        axis.title=element_text(size=14))+
+  geom_hline(yintercept = 0.05)
+@
+}
+%%%%% edgeR, n = 20 %%%%%%%%%%%%%%
+
+\frame{\frametitle{EdgeR, Partial Area under ROC ($\mbox{FPR}\leq 0.05$), $n = 20$}
+
+<<edger_paucall_20, echo = FALSE, results = 'asis',fig.show='hold',warning=FALSE,message=FALSE>>=
+
+edger_K_20_beta_1_auc_out2 <- as.data.frame(rbind(#edger_out_20_0[[1]][,8+c(1,2,3,5,6,8)], 
+                                           edger_out_20_25[[1]][,8+c(1,2,3,5,6,8)], 
+                                           edger_out_20_50[[1]][,8+c(1,2,3,5,6,8)]) )
+#                                            edger_out_20_75[[1]][,8+c(1,2,3,5,6,8)]))
+
+
+edger_K_20_beta_2_auc_out2 <- as.data.frame(rbind(#edger_out_20_0[[2]][,8+c(1,2,3,5,6,8)], 
+                                           edger_out_20_25[[2]][,8+c(1,2,3,5,6,8)], 
+                                           edger_out_20_50[[2]][,8+c(1,2,3,5,6,8)]) )
+#                                            edger_out_20_75[[2]][,8+c(1,2,3,5,6,8)]))
+
+colnames(edger_K_20_beta_1_auc_out2) <- 
+  colnames(edger_K_20_beta_2_auc_out2) <- 
+  c("nocov", "cov", "ebp", "aic", "aaa", "oracle")
+edger_K_20_beta_1_auc_out2$nu <- edger_K_20_beta_2_auc_out2$nu <- rep(as.character(c(25,50)), each = 100)
+edger_K_20_auc_out2 <- rbind(edger_K_20_beta_1_auc_out2, edger_K_20_beta_2_auc_out2)
+
+edger_K_20_auc_out2$setup <- rep(c("(L,U)=(0.1,0.5)", "(L,U)=(1,1.5)"), 
+                         each = dim(edger_K_20_beta_1_auc_out2)[1])
+
+
+edger_K_20_auc_out2_melt <- melt(edger_K_20_auc_out2)
+colnames(edger_K_20_auc_out2_melt)[3:4] <- c("Method", "PAUROC") 
+
+#colnames(edger_K_20_auc_out2_melt)
+
+edger_K_20_auc_out2_mean <- 
+edger_K_20_auc_out2_melt %.%
+  group_by(nu, setup, Method) %.%
+  summarise(PAUROC = mean(PAUROC))
+
+# edger_K_20_auc_out2_mean[edger_K_20_auc_out2_mean$nu==0 & edger_K_20_auc_out2_mean$Method == "nocov",][,4] <- 
+#   mean(edger_K_20_auc_out2_mean[edger_K_20_auc_out2_mean$nu==0 & edger_K_20_auc_out2_mean$Method == "nocov",][,4] )
+# 
+# edger_K_20_auc_out2_mean[edger_K_20_auc_out2_mean$nu==0 & edger_K_20_auc_out2_mean$Method == "cov",][,4] <- 
+#   mean(edger_K_20_auc_out2_mean[edger_K_20_auc_out2_mean$nu==0 & edger_K_20_auc_out2_mean$Method == "cov",][,4] )
+# 
+# edger_K_20_auc_out2_mean[edger_K_20_auc_out2_mean$nu==0 & edger_K_20_auc_out2_mean$Method == "ebp",][,4] <- 
+#   mean(edger_K_20_auc_out2_mean[edger_K_20_auc_out2_mean$nu==0 & edger_K_20_auc_out2_mean$Method == "ebp",][,4] )
+# 
+# edger_K_20_auc_out2_mean[edger_K_20_auc_out2_mean$nu==0 & edger_K_20_auc_out2_mean$Method == "aic",][,4] <- 
+#   mean(edger_K_20_auc_out2_mean[edger_K_20_auc_out2_mean$nu==0 & edger_K_20_auc_out2_mean$Method == "aic",][,4] )
+# 
+# edger_K_20_auc_out2_mean[edger_K_20_auc_out2_mean$nu==0 & edger_K_20_auc_out2_mean$Method == "aaa",][,4] <- 
+#   mean(edger_K_20_auc_out2_mean[edger_K_20_auc_out2_mean$nu==0 & edger_K_20_auc_out2_mean$Method == "aaa",][,4] )
+# 
+# edger_K_20_auc_out2_mean[edger_K_20_auc_out2_mean$nu==0 & edger_K_20_auc_out2_mean$Method == "oracle",][,4] <- 
+#   mean(edger_K_20_auc_out2_mean[edger_K_20_auc_out2_mean$nu==0 & edger_K_20_auc_out2_mean$Method == "oracle",][,4] )
+#save(edger_K_20_auc_out2_mean, file = paste(wd, "/edger_K_20/edger_K_20_auc_out2_mean.RData", sep = ""))
+
+#load(file = paste(wd, "/edger_K_20/edger_K_20_auc_out2_mean.RData", sep = ""))
+p <- ggplot(edger_K_20_auc_out2_mean, aes(nu, PAUROC, colour = Method, group = Method)) + geom_line()
+p + facet_grid(.~setup )+
+  xlab(expression(paste(nu)))+
+  theme(axis.text=element_text(size=14),
+        axis.title=element_text(size=14))+ 
+      theme(strip.text.x = element_text(size = 14))+
+  theme(legend.text = element_text(size = 14))+ 
+  theme(legend.title = element_text(size = 14))
+@
+
+}
+
+\frame{\frametitle{Edger, Control FDR at 5\%, $n = 20$}
+
+
+<<edgerfdpall20, echo = FALSE, results = 'asis',fig.show='hold',warning=FALSE,message=FALSE>>=
+
+edger_K_20_beta_1_fdp_out <- as.data.frame(rbind(#edger_out_20_0[[1]][,16+c(1,2,3,5,6,8)], 
+                                          edger_out_20_25[[1]][,16+c(1,2,3,5,6,8)], 
+                                           edger_out_20_50[[1]][,16+c(1,2,3,5,6,8)]))
+#                                            edger_out_20_75[[1]][,16+c(1,2,3,5,6,8)]))
+
+
+edger_K_20_beta_2_fdp_out <- as.data.frame(rbind(#edger_out_20_0[[2]][,16+c(1,2,3,5,6,8)], 
+                                          edger_out_20_25[[2]][,16+c(1,2,3,5,6,8)], 
+                                           edger_out_20_50[[2]][,16+c(1,2,3,5,6,8)]) )
+#                                            edger_out_20_75[[2]][,16+c(1,2,3,5,6,8)]))
+
+colnames(edger_K_20_beta_1_fdp_out) <- 
+  colnames(edger_K_20_beta_2_fdp_out) <- 
+  c("nocov", "cov", "ebp", "aic", "aaa", "oracle")
+edger_K_20_beta_1_fdp_out$nu <- edger_K_20_beta_2_fdp_out$nu <- rep(as.character(c(25,50)), each = 100)
+edger_K_20_fdp_out <- rbind(edger_K_20_beta_1_fdp_out, edger_K_20_beta_2_fdp_out)
+
+edger_K_20_fdp_out$setup <- rep(c("(L,U)=(0.1,0.5)", "(L,U)=(1,1.5)"), 
+                         each = dim(edger_K_20_beta_1_fdp_out)[1])
+
+
+edger_K_20_fdp_out_melt <- melt(edger_K_20_fdp_out)
+colnames(edger_K_20_fdp_out_melt)[3:4] <- c("Method", "FDR") 
+
+#colnames(edger_K_20_fdp_out_melt)
+
+edger_K_20_fdp_out_mean <- 
+edger_K_20_fdp_out_melt %.%
+  group_by(nu, setup, Method) %.%
+  summarise(FDR = mean(FDR))
+# 
+# edger_K_20_fdp_out_mean[edger_K_20_fdp_out_mean$nu==0 & edger_K_20_fdp_out_mean$Method == "nocov",][,4] <- 
+#   mean(edger_K_20_fdp_out_mean[edger_K_20_fdp_out_mean$nu==0 & edger_K_20_fdp_out_mean$Method == "nocov",][,4] )
+# 
+# edger_K_20_fdp_out_mean[edger_K_20_fdp_out_mean$nu==0 & edger_K_20_fdp_out_mean$Method == "cov",][,4] <- 
+#   mean(edger_K_20_fdp_out_mean[edger_K_20_fdp_out_mean$nu==0 & edger_K_20_fdp_out_mean$Method == "cov",][,4] )
+# 
+# edger_K_20_fdp_out_mean[edger_K_20_fdp_out_mean$nu==0 & edger_K_20_fdp_out_mean$Method == "ebp",][,4] <- 
+#   mean(edger_K_20_fdp_out_mean[edger_K_20_fdp_out_mean$nu==0 & edger_K_20_fdp_out_mean$Method == "ebp",][,4] )
+# 
+# edger_K_20_fdp_out_mean[edger_K_20_fdp_out_mean$nu==0 & edger_K_20_fdp_out_mean$Method == "aic",][,4] <- 
+#   mean(edger_K_20_fdp_out_mean[edger_K_20_fdp_out_mean$nu==0 & edger_K_20_fdp_out_mean$Method == "aic",][,4] )
+# 
+# edger_K_20_fdp_out_mean[edger_K_20_fdp_out_mean$nu==0 & edger_K_20_fdp_out_mean$Method == "aaa",][,4] <- 
+#   mean(edger_K_20_fdp_out_mean[edger_K_20_fdp_out_mean$nu==0 & edger_K_20_fdp_out_mean$Method == "aaa",][,4] )
+# 
+# edger_K_20_fdp_out_mean[edger_K_20_fdp_out_mean$nu==0 & edger_K_20_fdp_out_mean$Method == "oracle",][,4] <- 
+#   mean(edger_K_20_fdp_out_mean[edger_K_20_fdp_out_mean$nu==0 & edger_K_20_fdp_out_mean$Method == "oracle",][,4] )
+#save(edger_K_20_fdp_out_mean, file = paste(wd, "/edger_K_20/edger_K_20_fdp_out_mean.RData", sep = ""))
+
+#load(file = paste(wd, "/edger_K_20/edger_K_20_fdp_out_mean.RData", sep = ""))
+
+p <- ggplot(edger_K_20_fdp_out_mean, aes(nu, FDR, colour = Method, group = Method)) + geom_line()
+
+p + facet_grid(.~setup )+
+  xlab(expression(paste(nu)))+
+  theme(axis.text=element_text(size=14),
+        axis.title=element_text(size=14))+ 
+      theme(strip.text.x = element_text(size = 14))+
+  theme(legend.text = element_text(size = 14))+ 
+  theme(legend.title = element_text(size = 14))+
+  ylab("Estimated FDR")+theme(axis.text=element_text(size=14),
+        axis.title=element_text(size=14))+
+  geom_hline(yintercept = 0.05)
+@
+}
+
+
+
+\section{Conclusions}
+
+
+\frame{\frametitle{Comments on the Results}
+
+\begin{itemize}
+\setlength{\itemsep}{.2in}
+\item For the simulation settings we considered, the cov method based on 
+      $p_{j\tau|\beta}$ $(j = 1, \dots, J)$ performed best overall.
+      
+\item The price paid for including an irrelevant covariate in the model 
+      was far less than the cost of excluding an important covariate. 
+      
+\item All other methods relied on $p_{j\tau}$ $(j = 1, \dots, J)$ to some 
+      extent and performed poorly whenever a substantial portion of genes 
+      were associated with the covariate.
+
+\end{itemize}
+}
+
+
+\frame{\frametitle{Problems with $p_{j\tau}$}
+\begin{itemize}
+\setlength{\itemsep}{.2in}
+
+\item When $\beta_j \neq 0,$ $p_{j\tau}$ is likely to be inflated because 
+      variation in the response unexplained by the model pushes the test 
+      of $H_{0j}: \tau_{1j} = \tau_{2j}$ toward nonsignificance.
+
+\item Even when $\beta_j =0$, $p_{j\tau}$ is likely to be inflated if 
+      $\beta_{j^*} \neq 0$ for a substantial portion of genes $j^* \neq j$.
+      
+\item Borrowing information across genes to estimate gene-specific dispersions
+      can lead to overestimation of dispersions when $\beta_{j^*}\neq 0$ 
+      for many genes and the covariate is excluded from the model for each gene. 
+
+\end{itemize}
+}
+
+\frame{\frametitle{Conclusions}
+\begin{itemize}
+\setlength{\itemsep}{.2in}
+
+\item When using existing software for RNA-seq analysis that requires the model 
+      for each gene to have the same design matrix, it may be best to favor flexibility
+      over simplicity.
+
+\item More sophisticated empirical Bayes of fully Bayesian strategies for 
+      combining model selection and inference are needed.
+      
+\end{itemize}      
+}
+
+\section{Acknowledgements}
+
+\frame{\frametitle{Acknowledgements}
+\begin{itemize}
+\setlength{\itemsep}{.2in}
+
+\item This material is based upon work supported by Agriculture and Food Research 
+      Initiative Competitive Grant No.\ 2011-68004-30336 from the USDA National 
+      Institute of Food and Agriculture, and the National Science Foundation 
+      (NSF) under Grant No.\ 0922746.
+
+\item Any opinions, findings, and conclusions or recommendations expressed 
+      in this material are those of the authors and do not necessarily reflect 
+      the views of the USDA or NSF.
+
+\end{itemize}      
+}
+
+\end{document}

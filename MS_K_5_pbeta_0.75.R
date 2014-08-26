@@ -266,6 +266,7 @@ sim_QLfit <- function(p.beta, i.beta, e.beta, S, L, U){
   design.list[[2]] <- rep(1, ncol(counts))
   size <- apply(counts, 2, quantile, 0.75)
   fit <- QL.fit(counts, design.list, 
+                # log.offset = log(size),
                 Model = "NegBin",
                 print.progress=FALSE)
   
@@ -283,6 +284,7 @@ sim_QLfit <- function(p.beta, i.beta, e.beta, S, L, U){
   row.names(test.mat) <- c("Covariate", "Treatment")
   fit.2 <- QL.fit(counts, design.list, 
                   test.mat,
+                  # log.offset = log(size),
                   Model="NegBin", 
                   print.progress=FALSE)
   
@@ -305,7 +307,7 @@ sim_QLfit <- function(p.beta, i.beta, e.beta, S, L, U){
 #   p.beta
 # sum(ebp_cov)
   
-  if ((sum(ebp_cov ==0)> 4) & (sum(ebp_cov ==1)> 4))
+  if ((sum(ebp_cov ==0)>4) & (sum(ebp_cov ==1)>4))
   {
     ## code to fit QL.fit for each set of genes (cov and nocov)
     design.list <- vector("list", 3)
@@ -315,10 +317,11 @@ sim_QLfit <- function(p.beta, i.beta, e.beta, S, L, U){
     design.list[[3]] <- model.matrix(~ c(x[1,],x[2,])) # test for treatment effect
     test.mat <- rbind(1:2, c(1,3))
     row.names(test.mat) <- c("Covariate", "Treatment")
-    
+    size <- apply(counts[ebp_cov ==1, ], 2, quantile, 0.75)
     
     fit_ebp_cov <- QL.fit(counts[ebp_cov ==1, ], design.list, 
                           test.mat,
+                          # log.offset = log(size),
                           Model="NegBin", 
                           print.progress=FALSE)
     
@@ -329,9 +332,10 @@ sim_QLfit <- function(p.beta, i.beta, e.beta, S, L, U){
     #x1 <- as.factor(rep(1:2, each = K))
     design.list[[1]] <- model.matrix(~ x1)
     design.list[[2]] <- rep(1, ncol(counts)) # test for covariate
-    #  size <- apply(counts[ebp_cov ==0, ], 2, quantile, 0.75)
+   size <- apply(counts[ebp_cov ==0, ], 2, quantile, 0.75)
     fit_ebp_nocov <- QL.fit(counts[ebp_cov ==0, ], 
-                            design.list,                        
+                            design.list,      
+                            # log.offset = log(size),
                             Model="NegBin", 
                             print.progress=FALSE)
     
@@ -342,10 +346,10 @@ sim_QLfit <- function(p.beta, i.beta, e.beta, S, L, U){
     pvalue.trt.ebp[which(ebp_cov==0)] <- pvalue.trt.nocov_ebp
   }
   
-  if ((sum(ebp_cov ==0) <= 4)) pvalue.trt.ebp <- pvalue.trt.cov
+  if ((sum(ebp_cov ==0) <=4)) pvalue.trt.ebp <- pvalue.trt.cov
   
   
-  if ((sum(ebp_cov ==1) <= 4)) pvalue.trt.ebp <- pvalue.trt.nocov
+  if ((sum(ebp_cov ==1) <=4)) pvalue.trt.ebp <- pvalue.trt.nocov
   # gene classification when using grenander estimator
   
 #   # sum(gebp_cov)
@@ -353,7 +357,7 @@ sim_QLfit <- function(p.beta, i.beta, e.beta, S, L, U){
   gebp_cov <- laply(1:J, function(j)
     ifelse(g.ebp.cov$h.ebp[j] < .5,  1, 0))
   ## code to fit QL.fit for each set of genes (cov and nocov)
-  if ((sum(gebp_cov ==0)> 4) & (sum(gebp_cov ==1) > 4))
+  if ((sum(gebp_cov ==0)>4) & (sum(gebp_cov ==1) >4))
   {
     design.list <- vector("list", 3)
     x1 <- as.factor(rep(1:2, each = K))
@@ -362,9 +366,10 @@ sim_QLfit <- function(p.beta, i.beta, e.beta, S, L, U){
     design.list[[3]] <- model.matrix(~ c(x[1,],x[2,])) # test for treatment effect
     test.mat <- rbind(1:2, c(1,3))
     row.names(test.mat) <- c("Covariate", "Treatment")
-    #size <- apply(counts[gebp_cov ==1, ], 2, quantile, 0.75)
+    size <- apply(counts[gebp_cov ==1, ], 2, quantile, 0.75)
     fit_gebp_cov <- QL.fit(counts[gebp_cov ==1, ], design.list, 
                            test.mat,
+                           # log.offset = log(size),
                            Model="NegBin", 
                            print.progress=FALSE)
     
@@ -387,10 +392,10 @@ sim_QLfit <- function(p.beta, i.beta, e.beta, S, L, U){
     pvalue.trt.g.ebp[which(gebp_cov==0)] <- pvalue.trt.nocov_gebp
   }
   
-  if ((sum(gebp_cov ==0)<= 4)) pvalue.trt.g.ebp <- pvalue.trt.cov
+  if ((sum(gebp_cov ==0)<=4)) pvalue.trt.g.ebp <- pvalue.trt.cov
   
   
-  if ((sum(gebp_cov ==1)<= 4)) pvalue.trt.g.ebp <- pvalue.trt.nocov
+  if ((sum(gebp_cov ==1)<=4)) pvalue.trt.g.ebp <- pvalue.trt.nocov
   #gene classification when using aic
   
 #   sum(aic_cov)
@@ -405,9 +410,10 @@ sim_QLfit <- function(p.beta, i.beta, e.beta, S, L, U){
     design.list[[3]] <- model.matrix(~ c(x[1,],x[2,])) # test for treatment effect
     test.mat <- rbind(1:2, c(1,3))
     row.names(test.mat) <- c("Covariate", "Treatment")
-    #size <- apply(counts[aic_cov ==1, ], 2, quantile, 0.75)
+    size <- apply(counts[aic_cov ==1, ], 2, quantile, 0.75)
     fit_aic_cov <- QL.fit(counts[aic_cov ==1, ], design.list, 
                           test.mat,
+                          # log.offset = log(size),
                           Model="NegBin", 
                           print.progress=FALSE)
     
@@ -420,6 +426,7 @@ sim_QLfit <- function(p.beta, i.beta, e.beta, S, L, U){
     size <- apply(counts[aic_cov ==0, ], 2, quantile, 0.75)
     fit_aic_nocov <- QL.fit(counts[aic_cov ==0, ], design.list, 
                             Model="NegBin", 
+                            # log.offset = log(size),
                             print.progress=FALSE)
     
     result_aic_nocov <- QL.results(fit_aic_nocov,Plot= FALSE)
@@ -439,7 +446,7 @@ sim_QLfit <- function(p.beta, i.beta, e.beta, S, L, U){
   
   
   ## code to fit QL.fit for each set of genes (cov and nocov)
-  if ((sum(beta.ind ==0)> 4) & (sum(abs(beta.ind) ==1)>4))
+  if ((sum(beta.ind ==0)>4) & (sum(abs(beta.ind) ==1)>4))
   {
     design.list <- vector("list", 3)
     x1 <- as.factor(rep(1:2, each = K))
@@ -448,9 +455,10 @@ sim_QLfit <- function(p.beta, i.beta, e.beta, S, L, U){
     design.list[[3]] <- model.matrix(~ c(x[1,],x[2,])) # test for treatment effect
     test.mat <- rbind(1:2, c(1,3))
     row.names(test.mat) <- c("Covariate", "Treatment")
-    #size <- apply(counts[aic_cov ==1, ], 2, quantile, 0.75)
+    size <- apply(counts[abs(beta.ind) ==1, ], 2, quantile, 0.75)
     fit_oracle_cov <- QL.fit(counts[abs(beta.ind) ==1, ], design.list, 
                              test.mat,
+                             # log.offset = log(size),
                              Model="NegBin", 
                              print.progress=FALSE)
     
@@ -460,8 +468,9 @@ sim_QLfit <- function(p.beta, i.beta, e.beta, S, L, U){
     design.list <- vector("list", 2)
     design.list[[1]] <- model.matrix(~ x1)
     design.list[[2]] <- rep(1, ncol(counts)) # test for covariate
-    #size <- apply(counts[ebp_cov ==0, ], 2, quantile, 0.75)
+    size <- apply(counts[beta.ind ==0, ], 2, quantile, 0.75)
     fit_oracle_nocov <- QL.fit(counts[beta.ind ==0, ], design.list, 
+                               # log.offset= log(size),
                                Model="NegBin", 
                                print.progress=FALSE)
     
